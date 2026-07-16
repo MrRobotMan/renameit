@@ -8,8 +8,8 @@ license = "MIT"
 
 [dependencies]
 chrono = "0.4"
-iced = "0.13"
-strum = {version = "0.27", features = ["derive"]}
-rfd = "0.15"
+iced = "0.14"
+strum = {version = "0.28", features = ["derive"]}
+rfd = "0.17"
 home = "0.5"
 renameit-lib = {path="../renameit-lib"}
