@@ -5,7 +5,7 @@ use super::{Process, Renamer};
 ///
 /// - `First n` - Remove the first n characters from the name.
 /// - `Last n` - Remove the last n characters from the name.
-/// - `From`/`to` - Remove a string of text, e.g. from the 6th to the 9th characters (0 indexed).
+/// - `Range` - Remove a string of text, e.g. from the 6th to the 9th characters (0 indexed).
 /// - `Characters` - Remove occurrences of the listed characters from the name (no separator needed).
 /// - `Words` - Remove occurrences of listed words (separated by spaces).
 /// - `Crop` - Remove any text which occurs before (or after) a specific character or word.
@@ -66,7 +66,7 @@ impl Process for RemoveOptions {
         if self.first_n + self.last_n > 0 {
             self.first_last(file)
         }
-        if 0 < self.range.0 && self.range.0 < file.len() && self.range.1 > 0 {
+        if self.range.0 < file.len() && self.range.1 > self.range.0 {
             self.start_end(file)
         }
 
@@ -347,7 +347,7 @@ mod remove_tests {
     fn combined_removals() {
         let first_n = 2;
         let last_n = 2;
-        let range = (1, 2);
+        let range = (0, 2);
         let characters = "ft".into();
         let words = "ile w*h".into();
         let crop = (true, "".into());

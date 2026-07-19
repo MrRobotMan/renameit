@@ -47,8 +47,8 @@ impl NumberOptions {
             f => {
                 // ASCII Upper or lower
                 let offset = match f {
-                    NumberFormat::AsciiLower => 96_u8,
-                    _ => 64_u8,
+                    NumberFormat::AsciiLower => 97_u8,
+                    _ => 65_u8,
                 };
                 let mut res: Vec<char> = Vec::new();
                 let mut val = self.value;
@@ -410,5 +410,26 @@ mod numbering_test {
         };
         opt.process(&mut file);
         assert_eq!(file.stem, "Test_AX_File");
+    }
+
+    #[test]
+    fn insert_asciiupper_mod_zero() {
+        let mut file = Renamer::new(Path::new("TestFile.txt")).unwrap();
+        let format = NumberFormat::AsciiUpper;
+        let value = 26;
+        let pad = 0;
+        let char = '0';
+        let sep = "_".into();
+        let mode = NumberMode::Insert(4);
+        let opt = NumberOptions {
+            mode,
+            value,
+            pad,
+            char,
+            sep,
+            format,
+        };
+        opt.process(&mut file);
+        assert_eq!(file.stem, "Test_Z_File");
     }
 }
