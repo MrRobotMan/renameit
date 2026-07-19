@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use super::date;
 use super::*;
 
@@ -121,7 +123,7 @@ impl RenamerBuilder {
         characters: String,
         words: String,
         crop: (bool, String),
-        toggles: Vec<Toggle>,
+        toggles: HashSet<Toggle>,
     ) -> Self {
         let first_n = ranges[0];
         let last_n = ranges[1];
@@ -154,7 +156,7 @@ impl RenamerBuilder {
     }
 }
 
-#[derive(PartialEq, Eq)]
+#[derive(PartialEq, Eq, Hash)]
 pub enum Toggle {
     AsciiHigh,
     Digits,
