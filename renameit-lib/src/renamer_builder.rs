@@ -36,9 +36,7 @@ impl RenamerBuilder {
             suffix,
             word_space,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_case(mut self, case: Case, snake: bool, exceptions: String) -> Self {
@@ -47,9 +45,7 @@ impl RenamerBuilder {
             snake,
             exceptions,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_date(
@@ -69,30 +65,22 @@ impl RenamerBuilder {
             seg,
             full_year,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_extension(mut self, ext: ExtensionOptions) -> Self {
         self.renamer.ext = Some(ext);
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_folder(mut self, mode: folder::FolderMode, sep: String, levels: i32) -> Self {
         self.renamer.folder = Some(FolderOptions { mode, sep, levels });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_name(mut self, name: NameOptions) -> Self {
         self.renamer.name = Some(name);
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_number(
@@ -112,9 +100,7 @@ impl RenamerBuilder {
             sep,
             format,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_reg(mut self, exp: String, rep: String, extension: bool) -> Self {
@@ -123,9 +109,7 @@ impl RenamerBuilder {
             rep,
             extension,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     /// ranges: [first_n, last_n, range_start, range_end]
@@ -166,9 +150,7 @@ impl RenamerBuilder {
             symbols,
             lead_dots,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 
     pub fn with_replace(mut self, replace: String, with: String, case_sensative: bool) -> Self {
@@ -177,8 +159,6 @@ impl RenamerBuilder {
             with,
             case_sensative,
         });
-        Self {
-            renamer: self.renamer,
-        }
+        self
     }
 }

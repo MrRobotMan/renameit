@@ -38,7 +38,11 @@ impl Process for FolderOptions {
             })
             .collect();
         let end = min(components.len(), self.levels.unsigned_abs() as usize);
-        let start = if self.levels >= 0 { 0 } else { end - 1 };
+        let start = if self.levels >= 0 {
+            0
+        } else {
+            end.saturating_sub(1)
+        };
         match self.mode {
             FolderMode::Prefix => {
                 for component in components[start..end].iter().flatten() {

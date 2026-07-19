@@ -93,7 +93,7 @@ impl Process for RemoveOptions {
         }
 
         if self.digits {
-            for chr in "01233456789".chars() {
+            for chr in "0123456789".chars() {
                 self.remove_char(file, chr);
             }
         }
@@ -134,23 +134,28 @@ impl Process for RemoveOptions {
 
 impl RemoveOptions {
     fn first_last(&self, file: &mut String) {
-        if self.first_n + self.last_n > file.len() {
-            *file = "".to_owned();
+        let chars = file.chars().collect::<Vec<_>>();
+        if self.first_n + self.last_n > chars.len() {
+            file.clear()
         } else {
-            let mut end = file.len() - self.last_n;
+            let mut end = chars.len() - self.last_n;
             if end < self.first_n {
                 end = self.first_n;
             }
-            *file = file[self.first_n..end].to_owned();
+            *file = chars[self.first_n..end].iter().collect();
         }
     }
 
     fn start_end(&self, file: &mut String) {
         use std::cmp::min;
         // Change from 1 indexed to 0 indexed.
-        for _ in (self.range.0 - 1)..min(file.len(), self.range.1) {
-            file.remove(self.range.0 - 1);
+        let mut chars = file.chars().collect::<Vec<_>>();
+        let start = self.range.0;
+        let end = min(chars.len(), self.range.1);
+        if start < end {
+            chars.drain(start..end);
         }
+        *file = chars.iter().collect();
     }
 
     fn remove_char(&self, file: &mut String, chr: char) {

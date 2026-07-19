@@ -26,9 +26,12 @@ impl Process for NumberOptions {
             NumberMode::Prefix => file.stem.insert_str(0, &format!("{}{}", val, self.sep)),
             NumberMode::Suffix => write!(file.stem, "{}{}", self.sep, val)
                 .expect("Unexpected error appending string."),
-            NumberMode::Insert(idx) => file
-                .stem
-                .insert_str(idx, &format!("{}{}{}", self.sep, val, self.sep)),
+            NumberMode::Insert(idx) => {
+                let mut chars = file.stem.chars().collect::<Vec<_>>();
+                let idx = idx.min(chars.len());
+                chars.splice(idx..idx, format!("{}{}{}", self.sep, val, self.sep).chars());
+                file.stem = chars.iter().collect();
+            }
         };
     }
 }
@@ -42,6 +45,7 @@ impl NumberOptions {
             NumberFormat::HexUpper => format!("{:X}", self.value),
             NumberFormat::HexLower => format!("{:x}", self.value),
             f => {
+                // ASCII Upper or lower
                 let offset = match f {
                     NumberFormat::AsciiLower => 96_u8,
                     _ => 64_u8,
@@ -49,6 +53,7 @@ impl NumberOptions {
                 let mut res: Vec<char> = Vec::new();
                 let mut val = self.value;
                 while val > 0 {
+                    val -= 1;
                     res.push(char::from((val % 26) as u8 + offset));
                     val /= 26;
                 }

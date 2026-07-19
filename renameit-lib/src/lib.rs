@@ -161,6 +161,13 @@ impl Renamer {
             None => PathBuf::from("/"),
             Some(p) => PathBuf::from(p),
         };
+        // Note: If the renamed stem looks absolute ('/', 'C:\\', etc) it will
+        // full replace the path ignoring all parents. This will be kept because it
+        // will be obvious in the GUI automatic preview and ultimately it is then
+        // the user's responsibility to make a better name. TODO: add a check for
+        // illegal characters on Linux (/), Windows (< > : " / \ | ? *), and
+        // MacOS (; /) as well as reserved names. See https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
+        // for references.
         new_name.push(Path::new(&self.stem));
         new_name = match &self.extension {
             None => new_name,
@@ -178,10 +185,11 @@ impl Renamer {
     }
 
     /// Revert the previewed changes to a file.
-    pub fn revert(&mut self) {
-        let temp: &Renamer = &self.original.clone().try_into().unwrap();
+    pub fn revert(&mut self) -> Result<(), FileError> {
+        let temp: &Renamer = &self.original.clone().try_into()?;
         self.stem = temp.stem.clone();
         self.extension = temp.extension.clone();
+        Ok(())
     }
 
     pub fn with_option(mut self, option: Options) -> Self {
