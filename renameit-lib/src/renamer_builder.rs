@@ -121,17 +121,8 @@ impl RenamerBuilder {
         characters: String,
         words: String,
         crop: (bool, String),
-        toggles: [bool; 7],
+        toggles: Vec<Toggle>,
     ) -> Self {
-        let [
-            digits,
-            ascii_high,
-            trim,
-            double_space,
-            chars,
-            symbols,
-            lead_dots,
-        ] = toggles;
         let first_n = ranges[0];
         let last_n = ranges[1];
         let range = (ranges[2], ranges[3]);
@@ -142,13 +133,13 @@ impl RenamerBuilder {
             characters,
             words,
             crop,
-            digits,
-            ascii_high,
-            trim,
-            double_space,
-            chars,
-            symbols,
-            lead_dots,
+            digits: toggles.contains(&Toggle::Digits),
+            ascii_high: toggles.contains(&Toggle::AsciiHigh),
+            trim: toggles.contains(&Toggle::Trim),
+            double_space: toggles.contains(&Toggle::DoubleSpace),
+            english_letters: toggles.contains(&Toggle::EnglishLetters),
+            symbols: toggles.contains(&Toggle::Symbols),
+            lead_dots: toggles.contains(&Toggle::LeadDots),
         });
         self
     }
@@ -161,4 +152,15 @@ impl RenamerBuilder {
         });
         self
     }
+}
+
+#[derive(PartialEq, Eq)]
+pub enum Toggle {
+    AsciiHigh,
+    Digits,
+    DoubleSpace,
+    EnglishLetters,
+    LeadDots,
+    Symbols,
+    Trim,
 }

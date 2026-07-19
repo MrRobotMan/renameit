@@ -6,14 +6,14 @@ use super::{Process, Renamer};
 /// - `First n` - Remove the first n characters from the name.
 /// - `Last n` - Remove the last n characters from the name.
 /// - `From`/`to` - Remove a string of text, e.g. from the 6th to the 9th characters (0 indexed).
-/// - `Chars` - Remove occurrences of the listed characters from the name (no separator needed).
+/// - `Characters` - Remove occurrences of the listed characters from the name (no separator needed).
 /// - `Words` - Remove occurrences of listed words (separated by spaces).
 /// - `Crop` - Remove any text which occurs before (or after) a specific character or word.
 /// - `Digits` - Remove all occurrences of the digits 0-9 from the filename.
 /// - `High` - Remove ASCII characters (chars from 128 to 255).
 /// - `Trim` - Remove leading and trailing spaces.
 /// - `D/S` - Remove occurrences of double spaces, and replace them with single spaces.
-/// - `Chars` - Remove all characters (matching regex a-zA-Z).
+/// - `English Letters` - Remove all characters (matching regex a-zA-Z).
 /// - `Sym` - Remove all symbols (~`!@#$%^&*()_-+={}[]|\/?"':;.,<>).
 /// - `Lead Dots` - Remove "." from the front of filenames.
 ///
@@ -35,7 +35,7 @@ pub struct RemoveOptions {
     pub ascii_high: bool,
     pub trim: bool,
     pub double_space: bool,
-    pub chars: bool,
+    pub english_letters: bool,
     pub symbols: bool,
     pub lead_dots: bool,
 }
@@ -53,7 +53,7 @@ impl Default for RemoveOptions {
             ascii_high: Default::default(),
             trim: Default::default(),
             double_space: Default::default(),
-            chars: Default::default(),
+            english_letters: Default::default(),
             symbols: Default::default(),
             lead_dots: Default::default(),
         }
@@ -109,7 +109,7 @@ impl Process for RemoveOptions {
             *file = file.trim().to_owned();
         }
 
-        if self.chars {
+        if self.english_letters {
             let chars = (65..=90).map(char::from).chain((97..=122).map(char::from));
             for chr in chars {
                 self.remove_char(file, chr)
@@ -370,7 +370,7 @@ mod remove_tests {
             ascii_high,
             trim,
             double_space,
-            chars,
+            english_letters: chars,
             symbols,
             lead_dots,
         };
@@ -405,7 +405,7 @@ mod remove_tests {
             ascii_high,
             trim,
             double_space,
-            chars,
+            english_letters: chars,
             symbols,
             lead_dots,
         };
@@ -440,7 +440,7 @@ mod remove_tests {
             ascii_high,
             trim,
             double_space,
-            chars,
+            english_letters: chars,
             symbols,
             lead_dots,
         };
@@ -475,7 +475,7 @@ mod remove_tests {
             ascii_high,
             trim,
             double_space,
-            chars,
+            english_letters: chars,
             symbols,
             lead_dots,
         };
@@ -510,7 +510,7 @@ mod remove_tests {
             ascii_high,
             trim,
             double_space,
-            chars,
+            english_letters: chars,
             symbols,
             lead_dots,
         };
@@ -545,7 +545,7 @@ mod remove_tests {
             ascii_high,
             trim,
             double_space,
-            chars,
+            english_letters: chars,
             symbols,
             lead_dots,
         };
