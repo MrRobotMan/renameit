@@ -1,13 +1,19 @@
 use iced::{
-    self, Element, Result,
+    self, Element,
     widget::{Column, button, row, text},
 };
 
 mod directory;
 pub use directory::{Columns, Directory, get_initial_directory};
+use renameit_lib::{Renamer, RenamerError};
 
-pub fn run() -> Result {
-    iced::run("Title", update, view)
+pub fn run(initial_dir: Option<String>) -> Result<(), GuiError> {
+    let mut files = Selected::default();
+    if let Ok(initial) = get_initial_directory(initial_dir) {
+        files.add(initial)?;
+    };
+    iced::run(update, view)?;
+    Ok(())
 }
 
 fn update(states: &mut States, msg: Message) {
@@ -57,4 +63,30 @@ impl States {
 struct State {
     id: usize,
     age: i64,
+}
+
+use std::path::PathBuf;
+
+#[derive(Debug, Default)]
+pub struct Selected {
+    selected: Vec<Renamer>,
+}
+
+impl Selected {
+    fn clear(&mut self) {
+        self.selected.clear()
+    }
+
+    fn add(&mut self, file: PathBuf) -> Result<(), RenamerError> {
+        self.selected.push(Renamer::try_from(file.as_path())?);
+        Ok(())
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum GuiError {
+    #[error(transparent)]
+    Iced(#[from] iced::Error),
+    #[error(transparent)]
+    Renamer(#[from] RenamerError),
 }

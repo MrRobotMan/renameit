@@ -1339,6 +1339,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "iced_table2"
+version = "0.14.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "31f8023847802dc466bfd33f2605aba25447380d24b38d0b454e91b3551cbb6c"
+dependencies = [
+ "iced_core",
+ "iced_widget",
+]
+
+[[package]]
 name = "iced_tiny_skia"
 version = "0.14.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2483,9 +2493,11 @@ dependencies = [
  "chrono",
  "home",
  "iced",
+ "iced_table2",
  "renameit-lib",
  "rfd",
  "strum",
+ "thiserror 2.0.18",
 ]
 
 [[package]]
@@ -2494,7 +2506,6 @@ version = "0.1.0"
 dependencies = [
  "Inflector",
  "chrono",
- "iced",
  "regex",
  "thiserror 2.0.18",
 ]

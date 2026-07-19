@@ -1,6 +1,5 @@
 use std::{
     cmp::Ordering,
-    ffi::OsStr,
     fmt::Debug,
     fs,
     path::{Path, PathBuf},
@@ -12,6 +11,7 @@ pub mod date;
 pub mod error;
 pub mod extension;
 pub mod folder;
+pub mod helper_functions;
 pub mod name;
 pub mod number;
 pub mod reg;
@@ -29,6 +29,7 @@ pub use date::DateOptions;
 pub use error::*;
 pub use extension::ExtensionOptions;
 pub use folder::FolderOptions;
+use helper_functions::{PathString, generate_path_as_string};
 pub use name::NameOptions;
 pub use number::NumberOptions;
 pub use reg::RegexOptions;
@@ -308,20 +309,6 @@ impl From<&Renamer> for WidgetText {
     }
 }
 */
-
-#[derive(Debug)]
-pub enum PathString {
-    Valid(String),
-    Invalid(String),
-}
-
-/// Convert a Path to a mutable string
-pub fn generate_path_as_string(part: Option<&OsStr>) -> Option<PathString> {
-    part.map(|path| match path.to_str() {
-        Some(s) => PathString::Valid(s.into()),
-        None => PathString::Invalid(path.to_string_lossy().into_owned()),
-    })
-}
 
 pub type Filename<'a> = &'a str;
 pub type Extension<'a> = Option<&'a str>;

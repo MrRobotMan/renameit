@@ -13,3 +13,5 @@ strum = {version = "0.28", features = ["derive"]}
 rfd = "0.17"
 home = "0.5"
 renameit-lib = {path="../renameit-lib"}
+iced_table2 = "0.14.2"
+thiserror = "2.0"

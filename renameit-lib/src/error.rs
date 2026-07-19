@@ -26,8 +26,6 @@ pub enum RenamerError {
     #[error(transparent)]
     Directory(#[from] DirectoryError),
     #[error(transparent)]
-    Iced(#[from] iced::Error),
-    #[error(transparent)]
     Io(#[from] io::Error),
     #[error(transparent)]
     File(#[from] FileError),
