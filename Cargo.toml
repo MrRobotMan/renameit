@@ -13,3 +13,4 @@ license = "MIT"
 [dependencies]
 renameit-lib = {path="renameit-lib"}
 renameit-gui = {path="renameit-gui"}
+thiserror = "2.0.19"
