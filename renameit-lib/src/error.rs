@@ -19,6 +19,10 @@ pub enum DirectoryError {
     NoHome,
     #[error(transparent)]
     File(#[from] FileError),
+    #[error("Path {0} does not exist.")]
+    PathDoesNotExist(String),
+    #[error("{0} is a file, not a directory.")]
+    IsAFile(String),
 }
 
 #[derive(Debug, Error)]

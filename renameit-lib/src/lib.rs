@@ -11,7 +11,7 @@ pub mod date;
 pub mod error;
 pub mod extension;
 pub mod folder;
-pub mod helper_functions;
+pub mod helpers;
 pub mod name;
 pub mod number;
 pub mod reg;
@@ -29,7 +29,7 @@ pub use date::DateOptions;
 pub use error::*;
 pub use extension::ExtensionOptions;
 pub use folder::FolderOptions;
-use helper_functions::{PathString, generate_path_as_string};
+use helpers::{PathString, generate_path_as_string};
 pub use name::NameOptions;
 pub use number::NumberOptions;
 pub use reg::RegexOptions;
@@ -74,7 +74,7 @@ trait OptionBuilder {
 /// let new_name = rename.preview();
 /// assert_eq!(new_name, PathBuf::from("nEW_nAME.txt"));
 /// ```
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Renamer {
     stem: String,
     pub(crate) renamed: String,
@@ -116,6 +116,7 @@ impl Renamer {
                     valid_original,
                     extension,
                     original: path.to_owned(),
+                    renamed: path.to_str().unwrap_or("NON-UTF NAME").to_string(),
                     ..Default::default()
                 })
             }
@@ -179,7 +180,7 @@ impl Renamer {
     }
 
     /// Rename the file. Can not be undone.
-    pub fn rename(mut self) -> Result<(), FileError> {
+    pub fn rename(&mut self) -> Result<(), FileError> {
         let new_name = &self.preview();
         fs::rename(&self.original, new_name)?;
         Ok(())
@@ -209,7 +210,8 @@ impl Renamer {
         self
     }
 
-    // Return the information on a file.
+    /// Return the information on a file.
+    /// Returns (stem, renamed, extension, size, date modified, date created)
     pub fn info(
         &self,
     ) -> (
