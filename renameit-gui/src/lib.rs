@@ -1,6 +1,6 @@
 use std::{cell::Cell, path::Path};
 
-use iced::{self, Element};
+use iced::{self, Element, Task};
 
 mod files;
 use files::Files;
@@ -25,10 +25,14 @@ impl App {
         Self { files }
     }
 
-    fn update(&mut self, message: Message) {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::Files(message) => self.files.update(message),
+            Message::Files(message) => match self.files.update(message) {
+                files::Action::None => {}
+                files::Action::Run(task) => return task.map(Message::Files),
+            },
         }
+        Task::none()
     }
 
     fn view(&self) -> Element<'_, Message> {
