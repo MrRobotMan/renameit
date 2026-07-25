@@ -116,12 +116,15 @@ impl Renamer {
                     valid_original,
                     extension,
                     original: path.to_owned(),
-                    renamed: path.to_str().unwrap_or("NON-UTF NAME").to_string(),
                     ..Default::default()
                 })
             }
             None => Err(FileError::BadStem),
         }
+    }
+
+    pub fn is_dir(&self) -> bool {
+        self.original.is_dir()
     }
 
     pub fn preview(&mut self) -> PathBuf {
@@ -159,10 +162,6 @@ impl Renamer {
         for opt in opts {
             opt.process(self);
         }
-        let mut new_name = match self.original.parent() {
-            None => PathBuf::from("/"),
-            Some(p) => PathBuf::from(p),
-        };
         // Note: If the renamed stem looks absolute ('/', 'C:\\', etc) it will
         // full replace the path ignoring all parents. This will be kept because it
         // will be obvious in the GUI automatic preview and ultimately it is then
@@ -170,7 +169,7 @@ impl Renamer {
         // illegal characters on Linux (/), Windows (< > : " / \ | ? *), and
         // MacOS (; /) as well as reserved names. See https://stackoverflow.com/questions/1976007/what-characters-are-forbidden-in-windows-and-linux-directory-names
         // for references.
-        new_name.push(Path::new(&self.stem));
+        let mut new_name = PathBuf::from(&self.stem);
         new_name = match &self.extension {
             None => new_name,
             Some(e) => new_name.with_extension(e),
@@ -213,7 +212,7 @@ impl Renamer {
     /// Return the information on a file.
     /// Returns (stem, renamed, extension, size, date modified, date created)
     pub fn info(
-        &self,
+        &mut self,
     ) -> (
         Filename<'_>,
         Filename<'_>,
@@ -222,6 +221,7 @@ impl Renamer {
         DateModified,
         DateCreated,
     ) {
+        self.preview();
         let mut size = None;
         let mut modified = None;
         let mut created = None;

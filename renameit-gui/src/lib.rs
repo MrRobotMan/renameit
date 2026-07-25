@@ -1,6 +1,6 @@
 use std::{cell::Cell, path::Path};
 
-use iced::{self, Element, Task};
+use iced::{self, Element, Subscription, Task, keyboard};
 
 mod files;
 use files::Files;
@@ -10,6 +10,7 @@ pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
     let app = Cell::new(App::new(initial_dir));
     iced::application(move || app.take(), App::update, App::view)
         .title("Renameit!")
+        .subscription(App::subscription)
         .run()?;
     Ok(())
 }
@@ -31,6 +32,7 @@ impl App {
                 files::Action::None => {}
                 files::Action::Run(task) => return task.map(Message::Files),
             },
+            Message::None => {}
         }
         Task::none()
     }
@@ -38,10 +40,18 @@ impl App {
     fn view(&self) -> Element<'_, Message> {
         self.files.view().map(Message::Files)
     }
+
+    fn subscription(&self) -> Subscription<Message> {
+        keyboard::listen().map(|event| match event {
+            keyboard::Event::ModifiersChanged(m) => Message::Files(files::Message::Modifier(m)),
+            _ => Message::None,
+        })
+    }
 }
 #[derive(Clone)]
 enum Message {
     Files(files::Message),
+    None,
 }
 
 #[derive(Debug, thiserror::Error)]

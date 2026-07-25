@@ -1,11 +1,14 @@
 use std::{
+    collections::HashSet,
     fs::read_dir,
     path::{Path, PathBuf},
 };
 
+use chrono::{DateTime, Local};
 use iced::{
-    Element, Renderer, Task, Theme,
-    widget::{self, Id, column, row, scrollable, text, text_input},
+    Color, Element, Length, Renderer, Task, Theme,
+    keyboard::Modifiers,
+    widget::{self, Id, column, container, row, scrollable, text, text_input},
 };
 use iced_table2::table::{Column, table};
 use renameit_lib::{Renamer, helpers::get_directory};
@@ -22,7 +25,7 @@ const HEADERS: [&str; 6] = [
 pub struct Files {
     files: Vec<Renamer>, // file and if it's slated to be changed
     rows: Vec<FileData>,
-    selected: Vec<bool>,
+    selected: HashSet<usize>,
     columns: [DisplayColumn; 6],
     header_id: Id,
     body_id: Id,
@@ -30,6 +33,8 @@ pub struct Files {
     sort_ascending: bool,
     path: Option<PathBuf>,
     path_text: String,
+    modifiers: Modifiers,
+    last_row_selected: Option<usize>,
 }
 
 impl Default for Files {
@@ -38,32 +43,14 @@ impl Default for Files {
         Self {
             files: Vec::new(),
             rows: Vec::new(),
-            selected: Vec::new(),
+            selected: HashSet::new(),
             columns: [
-                DisplayColumn {
-                    width: 180.0,
-                    ..Default::default()
-                },
-                DisplayColumn {
-                    width: 80.0,
-                    ..Default::default()
-                },
-                DisplayColumn {
-                    width: 180.0,
-                    ..Default::default()
-                },
-                DisplayColumn {
-                    width: 90.0,
-                    ..Default::default()
-                },
-                DisplayColumn {
-                    width: 150.0,
-                    ..Default::default()
-                },
-                DisplayColumn {
-                    width: 150.0,
-                    ..Default::default()
-                },
+                DisplayColumn::new(180.0),
+                DisplayColumn::new(80.0),
+                DisplayColumn::new(180.0),
+                DisplayColumn::new(90.0),
+                DisplayColumn::new(180.0),
+                DisplayColumn::new(180.0),
             ],
             header_id: Id::unique(),
             body_id: Id::unique(),
@@ -71,6 +58,8 @@ impl Default for Files {
             sort_ascending: true,
             path: None,
             path_text: String::new(),
+            modifiers: Modifiers::empty(),
+            last_row_selected: None,
         }
     }
 }
@@ -103,39 +92,24 @@ impl Files {
     fn populate(&mut self) {
         self.files.clear();
         self.rows.clear();
-        for v in self.selected.iter_mut() {
-            *v = false;
-        }
+        self.selected.clear();
         let Some(path) = &self.path else { return };
         // Only try to get files from the path if the path is valid and accessable.
         if let Ok(dir) = read_dir(path) {
             for pa in dir {
                 if let Ok(p) = pa
-                    && let Ok(file) = p.path().try_into()
+                    && let Ok(mut file) = p.path().try_into()
                 {
-                    self.rows.push(FileData::from(&file));
+                    self.rows.push(FileData::from(&mut file));
                     self.files.push(file);
-                    self.selected.push(false);
                 }
             }
         }
     }
 
     pub fn update(&mut self, message: Message) -> Action {
+        let updating = matches!(&message, &Message::NewDir(_));
         match message {
-            Message::NewDir(text) => self.path_text = text,
-            Message::Submitted => {
-                let p = &self.path_text.clone();
-                if PathBuf::from(p).is_dir() {
-                    self.new_dir(p);
-                    if self.path.is_some() {
-                        self.populate();
-                    };
-                }
-            }
-            Message::SyncHeader(offset) => {
-                return Action::Run(widget::operation::scroll_to(self.header_id.clone(), offset));
-            }
             Message::ColumnDragged(index, offset) => {
                 if let Some(col) = self.columns.get_mut(index) {
                     col.resize_offset = Some(offset);
@@ -144,7 +118,7 @@ impl Files {
             Message::ColumnReleased => {
                 for col in &mut self.columns {
                     if let Some(offset) = col.resize_offset.take() {
-                        col.width += offset;
+                        col.width = (col.width + offset).max(col.min_size);
                     }
                 }
             }
@@ -168,8 +142,19 @@ impl Files {
                         .drain(..)
                         .zip(self.files.drain(..))
                         .collect::<Vec<_>>();
-                    zipped.sort_by(|(a, _), (b, _)| {
-                        let ord = a[index].cmp(&b[index]);
+                    zipped.sort_by(|(a, f1), (b, f2)| {
+                        let ord = match index {
+                            0 => a[index].cmp(&b[index]), // Sort by original name
+                            1 => match (f1.is_dir(), f2.is_dir()) {
+                                // Sort by extension with directories on top.
+                                (true, false) => std::cmp::Ordering::Less,
+                                (false, true) => std::cmp::Ordering::Greater,
+                                _ => a[index].cmp(&b[index]),
+                            },
+                            2 => std::cmp::Ordering::Equal, // Sort by new name. No-op.
+                            4 => a.modified.cmp(&b.modified), // Sort by date modified.
+                            _ => a.created.cmp(&b.created), // Sort by date created.
+                        };
                         if self.sort_ascending {
                             ord
                         } else {
@@ -179,11 +164,67 @@ impl Files {
                     let mut unzipped = (self.rows.clone(), self.files.clone());
                     unzipped.extend(zipped);
                     (self.rows, self.files) = unzipped;
-                    for v in self.selected.iter_mut() {
-                        *v = false;
-                    }
+                    self.selected.clear();
+                    self.selected_changed();
                 }
             }
+            Message::Modifier(m) => self.modifiers = m,
+            Message::NewDir(text) => self.path_text = text,
+            Message::RowPressed(index) => {
+                let ctrl = self.modifiers.command();
+                let shift = self.modifiers.shift();
+                match (ctrl, shift) {
+                    (true, false) => {
+                        // Control click. Add row.
+                        if !self.selected.remove(&index) {
+                            self.selected.insert(index);
+                        }
+                        self.last_row_selected = Some(index);
+                    }
+                    (false, true) => {
+                        // Shift click. Select range.
+                        if let Some(base) = self.last_row_selected {
+                            let (low, high) = (base.min(index), base.max(index));
+                            self.selected = (low..=high).collect();
+                        } else {
+                            self.selected = HashSet::from([index]);
+                            self.last_row_selected = Some(index);
+                        }
+                    }
+                    (true, true) => {
+                        // Ctrl+Shift click. Extend selection.
+                        if let Some(base) = self.last_row_selected {
+                            let (low, high) = (base.min(index), base.max(index));
+                            self.selected.extend(low..=high);
+                        } else {
+                            self.selected.insert(index);
+                            self.last_row_selected = Some(index);
+                        }
+                    }
+                    _ => {
+                        self.selected = HashSet::from([index]);
+                        self.last_row_selected = Some(index);
+                    }
+                }
+                self.selected_changed();
+            }
+            Message::Submitted => {
+                let p = &self.path_text.clone();
+                if PathBuf::from(p).is_dir() {
+                    self.new_dir(p);
+                    if self.path.is_some() {
+                        self.populate();
+                    };
+                }
+            }
+            Message::SyncHeader(offset) => {
+                return Action::Run(widget::operation::scroll_to(self.header_id.clone(), offset));
+            }
+        }
+        if let Some(p) = &self.path
+            && !updating
+        {
+            self.path_text = p.display().to_string();
         }
         Action::None
     }
@@ -198,8 +239,9 @@ impl Files {
         )
         .on_column_resize(Message::ColumnDragged, Message::ColumnReleased)
         .on_header_press(Message::HeaderPressed)
+        .on_row_press(Message::RowPressed)
         .cell_padding(6)
-        .min_width(400.0)
+        .min_width(890.0)
         .into();
 
         column![
@@ -211,34 +253,52 @@ impl Files {
         .into()
     }
 
-    // pub fn process(&mut self) {
-    //     for (file, _) in self
-    //         .files
-    //         .iter_mut()
-    //         .filter(|(_, s)| *s == Status::Selected)
-    //     {
-    //         if file.rename().is_err() {
-    //             file.revert().expect("Unknown error.")
-    //         }
-    //     }
-    // }
+    fn selected_changed(&mut self) {
+        for (row, data) in self.rows.iter_mut().enumerate() {
+            data.is_selected = self.selected.contains(&row);
+        }
+        self.preview();
+    }
 
-    // pub fn preview(&mut self) {
-    //     for (file, _) in self
-    //         .files
-    //         .iter_mut()
-    //         .filter(|(_, s)| *s == Status::Selected)
-    //     {
-    //         file.preview();
-    //     }
-    // }
+    fn _show_selected(&self) {
+        for (i, row) in self.rows.iter().enumerate() {
+            println!("{i}: {}", row.is_selected);
+        }
+    }
+
+    pub fn _process(&mut self) {
+        for idx in &self.selected {
+            if self.files[*idx].rename().is_err() {
+                self.files[*idx].revert().expect("Unknown error reverting.")
+            }
+        }
+        self.selected.clear();
+    }
+
+    pub fn preview(&mut self) {
+        for idx in &self.selected {
+            let name = self.files[*idx].preview();
+            self.rows[*idx].renamed = name.display().to_string();
+        }
+    }
 }
 
 #[derive(Default, Copy, Clone)]
 struct DisplayColumn {
     width: f32,
+    min_size: f32,
     resize_offset: Option<f32>,
     sort: Option<bool>,
+}
+
+impl DisplayColumn {
+    fn new(size: f32) -> Self {
+        Self {
+            width: size,
+            min_size: size,
+            ..Default::default()
+        }
+    }
 }
 
 impl<'a> Column<'a, Message, Theme, Renderer> for DisplayColumn {
@@ -259,7 +319,18 @@ impl<'a> Column<'a, Message, Theme, Renderer> for DisplayColumn {
         _row_index: usize,
         row: &'a Self::Row,
     ) -> Element<'a, Message, Theme, Renderer> {
-        text(&row[col_index]).into()
+        let cell = text(&row[col_index]);
+        if row.is_selected {
+            container(cell)
+                .width(Length::Fill)
+                .style(|_| container::Style {
+                    background: Some(Color::from_rgb(0.5, 0.5, 0.5).into()),
+                    ..Default::default()
+                })
+                .into()
+        } else {
+            cell.into()
+        }
     }
 
     fn width(&self) -> f32 {
@@ -278,12 +349,14 @@ pub enum Action {
 
 #[derive(Clone)]
 pub enum Message {
-    NewDir(String),
-    Submitted,
-    SyncHeader(scrollable::AbsoluteOffset),
     ColumnDragged(usize, f32),
     ColumnReleased,
     HeaderPressed(usize),
+    Modifier(Modifiers),
+    NewDir(String),
+    RowPressed(usize),
+    Submitted,
+    SyncHeader(scrollable::AbsoluteOffset),
 }
 
 #[derive(Clone)]
@@ -292,8 +365,21 @@ struct FileData {
     renamed: String,
     extension: String,
     size: String,
-    modified: String,
-    created: String,
+    modified: Option<DateTime<Local>>,
+    created: Option<DateTime<Local>>,
+    modified_format: String,
+    created_format: String,
+    is_selected: bool,
+}
+
+impl FileData {
+    fn format_data(&self, index: usize) -> &String {
+        if index == 4 {
+            &self.modified_format
+        } else {
+            &self.created_format
+        }
+    }
 }
 
 impl std::ops::Index<usize> for FileData {
@@ -305,30 +391,28 @@ impl std::ops::Index<usize> for FileData {
             1 => &self.extension,
             2 => &self.renamed,
             3 => &self.size,
-            4 => &self.modified,
-            _ => &self.created,
+            _ => self.format_data(index),
         }
     }
 }
 
-impl From<&Renamer> for FileData {
-    fn from(file: &Renamer) -> Self {
+impl From<&mut Renamer> for FileData {
+    fn from(file: &mut Renamer) -> Self {
         let data = file.info();
         Self {
             original: data.0.to_string(),
             extension: data.2.map_or_else(String::new, str::to_string),
-            renamed: if let Some(e) = data.2 {
-                format!("{}.{e}", data.1)
-            } else {
-                data.1.to_string()
-            },
+            renamed: data.1.to_string(),
             size: data.3.map_or_else(String::new, |s| format!("{s} B")),
-            modified: data
+            modified: data.4,
+            modified_format: data
                 .4
-                .map_or_else(String::new, |dt| dt.format("%Y-%m-%d %H:%M").to_string()),
-            created: data
+                .map_or_else(String::new, |d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+            created: data.5,
+            created_format: data
                 .5
-                .map_or_else(String::new, |dt| dt.format("%Y-%m-%d %H:%M").to_string()),
+                .map_or_else(String::new, |d| d.format("%Y-%m-%d %H:%M:%S").to_string()),
+            is_selected: false,
         }
     }
 }
