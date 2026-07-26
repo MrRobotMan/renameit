@@ -115,7 +115,6 @@ impl RenamerBuilder {
     }
 
     /// ranges: [first_n, last_n, range_start, range_end]
-    /// toggles: [digits, ascii_high, trim, double_space, chars, symbols, lead_dots]
     /// crop: Before (true) or after (false) string
     pub fn with_remove(
         mut self,

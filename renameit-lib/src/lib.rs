@@ -85,6 +85,7 @@ pub struct Renamer {
     remove: Option<RemoveOptions>,
     replace: Option<ReplaceOptions>,
     is_dir: bool,
+    reverted: (String, Option<String>),
 }
 
 impl Renamer {
@@ -104,11 +105,14 @@ impl Renamer {
                     PathString::Valid(s) => (s, true),
                     PathString::Invalid(s) => (s, false),
                 };
+                let is_dir = path.is_dir();
                 Ok(Self {
-                    stem,
+                    stem: stem.clone(),
                     valid_original,
-                    extension,
+                    extension: extension.clone(),
                     original: path.to_owned(),
+                    reverted: (stem, extension),
+                    is_dir,
                     ..Default::default()
                 })
             }
@@ -172,18 +176,28 @@ impl Renamer {
     }
 
     /// Rename the file. Can not be undone.
-    pub fn rename(&mut self) -> Result<(), FileError> {
+    pub fn rename(&mut self) -> Result<Self, FileError> {
         let new_name = &self.preview();
         fs::rename(&self.original, new_name)?;
-        Ok(())
+        self.original = new_name.clone();
+        Self::new(new_name)
     }
 
     /// Revert the previewed changes to a file.
-    pub fn revert(&mut self) -> Result<(), FileError> {
-        let temp: &Renamer = &self.original.clone().try_into()?;
-        self.stem = temp.stem.clone();
-        self.extension = temp.extension.clone();
-        Ok(())
+    pub fn revert(&mut self) -> PathBuf {
+        self.stem = self.reverted.0.clone();
+        self.extension = self.reverted.1.clone();
+        let name = PathBuf::from(&self.stem);
+        match &self.extension {
+            None => {
+                self.renamed = self.stem.clone();
+                name
+            }
+            Some(e) => {
+                self.renamed = format!("{}.{}", self.stem, e);
+                name.with_extension(e)
+            }
+        }
     }
 
     pub fn with_option(mut self, option: Options) -> Self {
@@ -293,17 +307,6 @@ impl TryFrom<&PathBuf> for Renamer {
         value.as_path().try_into()
     }
 }
-
-/*
-impl From<&Renamer> for WidgetText {
-    fn from(value: &Renamer) -> Self {
-        Self::RichText(RichText::new(match &value.extension {
-            None => value.stem.clone(),
-            Some(ext) => format!("{}.{}", value.stem, ext),
-        }))
-    }
-}
-*/
 
 pub type Filename<'a> = &'a str;
 pub type Extension<'a> = Option<&'a str>;

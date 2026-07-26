@@ -11,7 +11,10 @@ use iced::{
     widget::{self, Id, column, container, row, scrollable, text, text_input},
 };
 use iced_table2::table::{Column, table};
-use renameit_lib::{Renamer, helpers::get_directory};
+use renameit_lib::{
+    Renamer,
+    helpers::{get_directory, get_start_dir},
+};
 
 const HEADERS: [&str; 6] = [
     "Name",
@@ -68,7 +71,7 @@ impl Files {
     pub fn new<P: AsRef<Path>>(path: Option<P>) -> Self {
         let mut files = Self::default();
         let path = if let Some(p) = path {
-            get_directory(p).map_or_else(|_| home::home_dir(), Some)
+            get_directory(p).map_or_else(|_| get_start_dir().ok(), Some)
         } else {
             home::home_dir()
         };
@@ -144,16 +147,18 @@ impl Files {
                         .collect::<Vec<_>>();
                     zipped.sort_by(|(a, f1), (b, f2)| {
                         let ord = match index {
-                            0 => a[index].cmp(&b[index]), // Sort by original name
+                            0 => a.original.cmp(&b.original), // Sort by original name
                             1 => match (f1.is_dir(), f2.is_dir()) {
                                 // Sort by extension with directories on top.
                                 (true, false) => std::cmp::Ordering::Less,
                                 (false, true) => std::cmp::Ordering::Greater,
-                                _ => a[index].cmp(&b[index]),
+                                _ => a.extension.cmp(&b.extension),
                             },
                             2 => std::cmp::Ordering::Equal, // Sort by new name. No-op.
+                            3 => a.size.cmp(&b.size),       // Sort by size
                             4 => a.modified.cmp(&b.modified), // Sort by date modified.
-                            _ => a.created.cmp(&b.created), // Sort by date created.
+                            5 => a.created.cmp(&b.created), // Sort by date created.
+                            _ => unreachable!("Bad index"),
                         };
                         if self.sort_ascending {
                             ord
@@ -161,9 +166,7 @@ impl Files {
                             ord.reverse()
                         }
                     });
-                    let mut unzipped = (self.rows.clone(), self.files.clone());
-                    unzipped.extend(zipped);
-                    (self.rows, self.files) = unzipped;
+                    (self.rows, self.files) = zipped.into_iter().unzip();
                     self.selected.clear();
                     self.selected_changed();
                 }
@@ -212,9 +215,6 @@ impl Files {
                 let p = &self.path_text.clone();
                 if PathBuf::from(p).is_dir() {
                     self.new_dir(p);
-                    if self.path.is_some() {
-                        self.populate();
-                    };
                 }
             }
             Message::SyncHeader(offset) => {
@@ -260,25 +260,28 @@ impl Files {
         self.preview();
     }
 
-    fn _show_selected(&self) {
-        for (i, row) in self.rows.iter().enumerate() {
-            println!("{i}: {}", row.is_selected);
-        }
-    }
-
     pub fn _process(&mut self) {
         for idx in &self.selected {
-            if self.files[*idx].rename().is_err() {
-                self.files[*idx].revert().expect("Unknown error reverting.")
+            if let Ok(r) = self.files[*idx].rename() {
+                self.files[*idx] = r;
+            } else {
+                // TODO handle what happens if a file can't be renamed.
+                // Maybe highlight the row if it's a permission issue.
+                // Maybe something else.
+                todo!()
             }
         }
         self.selected.clear();
     }
 
     pub fn preview(&mut self) {
-        for idx in &self.selected {
-            let name = self.files[*idx].preview();
-            self.rows[*idx].renamed = name.display().to_string();
+        for (idx, (row, file)) in self.rows.iter_mut().zip(self.files.iter_mut()).enumerate() {
+            let name = if self.selected.contains(&idx) {
+                file.preview()
+            } else {
+                file.revert()
+            };
+            row.renamed = name.display().to_string();
         }
     }
 }
@@ -364,7 +367,8 @@ struct FileData {
     original: String,
     renamed: String,
     extension: String,
-    size: String,
+    size: Option<u64>,
+    size_string: String,
     modified: Option<DateTime<Local>>,
     created: Option<DateTime<Local>>,
     modified_format: String,
@@ -390,8 +394,9 @@ impl std::ops::Index<usize> for FileData {
             0 => &self.original,
             1 => &self.extension,
             2 => &self.renamed,
-            3 => &self.size,
-            _ => self.format_data(index),
+            3 => &self.size_string,
+            4 | 5 => self.format_data(index),
+            _ => unreachable!("Bad index"),
         }
     }
 }
@@ -403,7 +408,8 @@ impl From<&mut Renamer> for FileData {
             original: data.0.to_string(),
             extension: data.2.map_or_else(String::new, str::to_string),
             renamed: data.1.to_string(),
-            size: data.3.map_or_else(String::new, |s| format!("{s} B")),
+            size: data.3,
+            size_string: data.3.map_or_else(String::new, |s| format!("{s} B")),
             modified: data.4,
             modified_format: data
                 .4

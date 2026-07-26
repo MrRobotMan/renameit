@@ -23,7 +23,7 @@ pub(crate) fn generate_path_as_string(part: Option<&OsStr>) -> Option<PathString
     })
 }
 
-pub fn get_home() -> Result<PathBuf, DirectoryError> {
+pub fn get_start_dir() -> Result<PathBuf, DirectoryError> {
     match env::current_dir() {
         Ok(dir) => Ok(dir),
         Err(_) => {
