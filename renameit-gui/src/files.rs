@@ -1,6 +1,7 @@
 use std::{
     collections::HashSet,
     fs::read_dir,
+    mem,
     path::{Path, PathBuf},
 };
 
@@ -8,11 +9,11 @@ use chrono::{DateTime, Local};
 use iced::{
     Color, Element, Length, Renderer, Task, Theme,
     keyboard::Modifiers,
-    widget::{self, Id, column, container, row, scrollable, text, text_input},
+    widget::{self, Id, button, column, container, row, scrollable, text, text_input},
 };
 use iced_table2::table::{Column, table};
 use renameit_lib::{
-    Renamer,
+    FileError, Renamer,
     helpers::{get_directory, get_start_dir},
 };
 
@@ -73,7 +74,7 @@ impl Files {
         let path = if let Some(p) = path {
             get_directory(p).map_or_else(|_| get_start_dir().ok(), Some)
         } else {
-            home::home_dir()
+            get_start_dir().ok()
         };
         files.path = path;
         files.path_text = files
@@ -84,7 +85,7 @@ impl Files {
         files
     }
 
-    fn new_dir<S: AsRef<str>>(&mut self, path: S) -> Option<PathBuf> {
+    fn new_dir<S: AsRef<Path>>(&mut self, path: S) -> Option<PathBuf> {
         if let Ok(p) = get_directory(path.as_ref()) {
             self.path = Some(p);
             self.populate();
@@ -123,6 +124,16 @@ impl Files {
                     if let Some(offset) = col.resize_offset.take() {
                         col.width = (col.width + offset).max(col.min_size);
                     }
+                }
+            }
+            Message::FolderDialog => {
+                let mut dialog = rfd::FileDialog::new();
+                if let Some(p) = &self.path {
+                    dialog = dialog.set_directory(p)
+                }
+                if let Some(path) = dialog.pick_folder() {
+                    self.new_dir(&path);
+                    self.path_text = path.display().to_string();
                 }
             }
             Message::HeaderPressed(index) => {
@@ -220,6 +231,14 @@ impl Files {
             Message::SyncHeader(offset) => {
                 return Action::Run(widget::operation::scroll_to(self.header_id.clone(), offset));
             }
+            Message::UpLevel => {
+                if let Some(path) = self.path.clone()
+                    && let Some(p) = path.parent()
+                {
+                    self.new_dir(p);
+                    self.path_text = p.display().to_string();
+                }
+            }
         }
         if let Some(p) = &self.path
             && !updating
@@ -245,9 +264,13 @@ impl Files {
         .into();
 
         column![
-            text_input(&self.path_text, &self.path_text)
-                .on_submit(Message::Submitted)
-                .on_input(Message::NewDir),
+            row![
+                button("🗁").on_press(Message::FolderDialog),
+                text_input(&self.path_text, &self.path_text)
+                    .on_submit(Message::Submitted)
+                    .on_input(Message::NewDir),
+                button("▲").on_press(Message::UpLevel),
+            ],
             tbl
         ]
         .into()
@@ -260,18 +283,17 @@ impl Files {
         self.preview();
     }
 
-    pub fn _process(&mut self) {
+    pub fn _process(&mut self) -> Vec<(PathBuf, FileError)> {
+        let mut errors = Vec::new();
         for idx in &self.selected {
-            if let Ok(r) = self.files[*idx].rename() {
-                self.files[*idx] = r;
-            } else {
-                // TODO handle what happens if a file can't be renamed.
-                // Maybe highlight the row if it's a permission issue.
-                // Maybe something else.
-                todo!()
+            let ren = mem::take(&mut self.files[*idx]);
+            if let Err(e) = ren.rename() {
+                errors.push(e);
             }
         }
         self.selected.clear();
+        self.populate();
+        errors
     }
 
     pub fn preview(&mut self) {
@@ -354,12 +376,14 @@ pub enum Action {
 pub enum Message {
     ColumnDragged(usize, f32),
     ColumnReleased,
+    FolderDialog,
     HeaderPressed(usize),
     Modifier(Modifiers),
     NewDir(String),
     RowPressed(usize),
     Submitted,
     SyncHeader(scrollable::AbsoluteOffset),
+    UpLevel,
 }
 
 #[derive(Clone)]

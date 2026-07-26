@@ -176,11 +176,12 @@ impl Renamer {
     }
 
     /// Rename the file. Can not be undone.
-    pub fn rename(&mut self) -> Result<Self, FileError> {
-        let new_name = &self.preview();
-        fs::rename(&self.original, new_name)?;
-        self.original = new_name.clone();
-        Self::new(new_name)
+    pub fn rename(mut self) -> Result<Self, (PathBuf, FileError)> {
+        let new_name = self.preview();
+        if let Err(e) = fs::rename(&self.original, &new_name) {
+            return Err((self.original, e.into()));
+        };
+        Self::new(&new_name).map_err(|e| (new_name, e))
     }
 
     /// Revert the previewed changes to a file.
@@ -214,6 +215,46 @@ impl Renamer {
             Extension(opt) => self.ext = Some(opt),
         }
         self
+    }
+
+    pub fn add_option(&mut self, option: Options) {
+        match option {
+            Options::Regex(opt) => self.regex = Some(opt),
+            Options::Name(opt) => self.name = Some(opt),
+            Options::Case(opt) => self.case = Some(opt),
+            Options::Remove(opt) => self.remove = Some(opt),
+            Options::Add(opt) => self.add = Some(opt),
+            Options::Date(opt) => self.date = Some(opt),
+            Options::Folder(opt) => self.folder = Some(opt),
+            Options::Number(opt) => self.number = Some(opt),
+            Options::Extension(opt) => self.ext = Some(opt),
+        }
+    }
+
+    pub fn remove_option(&mut self, option: Options) {
+        match option {
+            Options::Regex(_) => self.regex = None,
+            Options::Name(_) => self.name = None,
+            Options::Case(_) => self.case = None,
+            Options::Remove(_) => self.remove = None,
+            Options::Add(_) => self.add = None,
+            Options::Date(_) => self.date = None,
+            Options::Folder(_) => self.folder = None,
+            Options::Number(_) => self.number = None,
+            Options::Extension(_) => self.ext = None,
+        }
+    }
+
+    pub fn clear_options(&mut self) {
+        self.regex = None;
+        self.name = None;
+        self.case = None;
+        self.remove = None;
+        self.add = None;
+        self.date = None;
+        self.folder = None;
+        self.number = None;
+        self.ext = None;
     }
 
     /// Return the information on a file.
@@ -373,6 +414,8 @@ impl PartialOrd for Renamer {
 
 #[cfg(test)]
 mod file_tests {
+    use std::io;
+
     use renamer_builder::RenamerBuilder;
 
     use super::*;
@@ -411,7 +454,10 @@ mod file_tests {
             .with_replace("_".into(), "-".into(), false)
             .build();
         assert_eq!(Path::new("file-with-a-name.txt"), renamer.preview());
-        assert!(matches!(renamer.rename(), Err(FileError::Io(_))));
+        assert!(matches!(
+            renamer.rename(),
+            Err((p, FileError::Io(e))) if p == PathBuf::from("file_with_a_name.txt") && e.kind() == io::ErrorKind::NotFound
+        ));
         let _ = fs::remove_file(file2);
         let _ = fs::remove_file("file-with-a-name.txt");
     }
