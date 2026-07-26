@@ -1,5 +1,4 @@
 use super::{Process, Renamer};
-// use crate::gui::{Arrows, Incrementer, ValText};
 
 /// Add a fixed `Prefix` or`Suffix` to the filename,
 /// or `Insert` text at a specific location (0 indexed, negative to index from the end).
@@ -53,97 +52,6 @@ impl Process for AddOptions {
         }
     }
 }
-
-/*
-#[derive(Default)]
-pub struct AddView {
-    prefix: String,
-    insert: String,
-    position: ValText<i32>,
-    suffix: String,
-    word_space: bool,
-    width: f32,
-}
-
-impl AddView {
-    pub fn new(width: f32) -> Self {
-        Self {
-            width,
-            ..Default::default()
-        }
-    }
-}
-
-impl OptionBuilder for AddView {
-    type Processor = AddOptions;
-    fn build(&self) -> AddOptions {
-        let prefix = match &self.prefix {
-            s if s.is_empty() => None,
-            s => Some(s.clone()),
-        };
-        let insert = match &self.insert {
-            s if s.is_empty() => None,
-            s => Some((self.position.get_val().unwrap_or(0), s.clone())),
-        };
-        let suffix = match &self.suffix {
-            x if x.is_empty() => None,
-            s => Some(s.clone()),
-        };
-        AddOptions {
-            prefix,
-            insert,
-            suffix,
-            word_space: self.word_space,
-        }
-    }
-}
-
-impl Incrementer for &mut AddView {
-    fn increment(&mut self, _field: &str) {
-        match self.position.get_val() {
-            Some(v) => self.position.set_val(v + 1),
-            None => self.position.set_val(1),
-        };
-    }
-    fn decrement(&mut self, _field: &str) {
-        match self.position.get_val() {
-            Some(v) => self.position.set_val(v + -1),
-            None => self.position.set_val(-1),
-        };
-    }
-}
-impl Widget for &mut AddView {
-    fn ui(mut self, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
-            ui.set_width(self.width);
-            ui.label("Add");
-            ui.horizontal(|ui| {
-                ui.label("Prefix");
-                ui.text_edit_singleline(&mut self.prefix);
-            });
-            ui.horizontal(|ui| {
-                ui.label("Insert");
-                ui.text_edit_singleline(&mut self.insert);
-            });
-            ui.horizontal(|ui| {
-                ui.label("at:");
-                if ui.text_edit_singleline(&mut self.position).changed()
-                    && !self.position.is_valid()
-                {
-                    self.position.revert();
-                };
-            });
-            ui.add(Arrows::new("position", &mut self, ""));
-            ui.horizontal(|ui| {
-                ui.label("Suffix");
-                ui.text_edit_singleline(&mut self.suffix);
-            });
-            ui.checkbox(&mut self.word_space, "Word Space");
-        })
-        .response
-    }
-}
-*/
 
 #[cfg(test)]
 mod add_tests {

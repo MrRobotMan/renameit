@@ -14,6 +14,7 @@ pub(crate) enum PathString {
     Valid(String),
     Invalid(String),
 }
+
 /// Convert a Path to a mutable string
 pub(crate) fn generate_path_as_string(part: Option<&OsStr>) -> Option<PathString> {
     part.map(|path| match path.to_str() {

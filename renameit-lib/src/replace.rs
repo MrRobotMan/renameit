@@ -28,49 +28,6 @@ impl Process for ReplaceOptions {
     }
 }
 
-/*
-#[derive(Default)]
-pub struct ReplaceView {
-    options: ReplaceOptions,
-    width: f32,
-}
-
-impl ReplaceView {
-    pub fn new(width: f32) -> Self {
-        Self {
-            width,
-            ..Default::default()
-        }
-    }
-}
-
-impl OptionBuilder for ReplaceView {
-    type Processor = ReplaceOptions;
-    fn build(&self) -> ReplaceOptions {
-        self.options.clone()
-    }
-}
-
-impl Widget for &mut ReplaceView {
-    fn ui(self, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
-            ui.set_width(self.width);
-            ui.label("Replace");
-            ui.horizontal(|ui| {
-                ui.label("Replace: ");
-                ui.text_edit_singleline(&mut self.options.replace);
-            });
-            ui.horizontal(|ui| {
-                ui.label("With: ");
-                ui.text_edit_singleline(&mut self.options.with);
-            });
-            ui.checkbox(&mut self.options.case_sensative, "Match Case")
-        })
-        .response
-    }
-}
-*/
-
 #[cfg(test)]
 mod match_tests {
     use super::*;

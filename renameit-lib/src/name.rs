@@ -39,64 +39,6 @@ impl NameOptions {
     }
 }
 
-/*
-impl From<&NameOptions> for WidgetText {
-    fn from(value: &NameOptions) -> Self {
-        WidgetText::RichText(RichText::new(match value {
-            NameOptions::Keep => "Keep",
-            NameOptions::Remove => "Remove",
-            NameOptions::Fixed(_) => "Fixed",
-            NameOptions::Reverse => "Reverse",
-        }))
-    }
-}
-
-#[derive(Default)]
-pub struct NameView {
-    mode: NameOptions,
-    value: String,
-    width: f32,
-}
-
-impl NameView {
-    pub fn new(width: f32) -> Self {
-        Self {
-            width,
-            ..Default::default()
-        }
-    }
-}
-
-impl OptionBuilder for NameView {
-    type Processor = NameOptions;
-
-    fn build(&self) -> NameOptions {
-        match self.mode {
-            NameOptions::Fixed(_) => NameOptions::Fixed(self.value.clone()),
-            _ => self.mode.clone(),
-        }
-    }
-}
-
-impl Widget for &mut NameView {
-    fn ui(self, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
-            ui.set_width(self.width);
-            ui.label("Name");
-            egui::ComboBox::new("Name Options", "")
-                .selected_text(&self.mode)
-                .show_ui(ui, |ui| {
-                    for opt in NameOptions::iter() {
-                        ui.selectable_value(&mut self.mode, opt.clone(), format!("{:?}", opt));
-                    }
-                });
-            ui.text_edit_singleline(&mut self.value);
-        })
-        .response
-    }
-}
-*/
-
 #[cfg(test)]
 mod name_tests {
     use super::*;

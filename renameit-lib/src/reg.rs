@@ -36,50 +36,6 @@ impl Process for RegexOptions {
     }
 }
 
-/*
-#[derive(Default)]
-pub struct RegexView {
-    options: RegexOptions,
-    width: f32,
-}
-
-impl RegexView {
-    pub fn new(width: f32) -> Self {
-        Self {
-            width,
-            ..Default::default()
-        }
-    }
-}
-
-impl OptionBuilder for RegexView {
-    type Processor = RegexOptions;
-
-    fn build(&self) -> RegexOptions {
-        self.options.clone()
-    }
-}
-
-impl Widget for &mut RegexView {
-    fn ui(self, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
-            ui.set_width(self.width);
-            ui.label("Regex");
-            ui.horizontal(|ui| {
-                ui.label("Match:");
-                ui.text_edit_singleline(&mut self.options.exp);
-            });
-            ui.horizontal(|ui| {
-                ui.label("Replacement:");
-                ui.text_edit_singleline(&mut self.options.rep)
-            });
-            ui.checkbox(&mut self.options.extension, "Include Extension");
-        })
-        .response
-    }
-}
-*/
-
 #[cfg(test)]
 mod regex_tests {
     use super::*;

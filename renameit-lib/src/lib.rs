@@ -40,13 +40,6 @@ pub trait Process {
     fn process(&self, file: &mut Renamer);
 }
 
-#[allow(dead_code)]
-trait OptionBuilder {
-    type Processor: Process;
-
-    fn build(&self) -> Self::Processor;
-}
-
 /// Tool to rename a single file.
 /// Takes the `&path` and various options (processed in order) to return a `PathBuf`
 /// used to rename the file.
@@ -77,10 +70,10 @@ trait OptionBuilder {
 #[derive(Debug, Default, Clone)]
 pub struct Renamer {
     stem: String,
-    pub(crate) renamed: String,
-    pub(crate) original: PathBuf,
+    renamed: String,
+    original: PathBuf,
     valid_original: bool,
-    pub(crate) extension: Option<String>,
+    extension: Option<String>,
     add: Option<AddOptions>,
     case: Option<CaseOptions>,
     date: Option<DateOptions>,
@@ -91,7 +84,7 @@ pub struct Renamer {
     regex: Option<RegexOptions>,
     remove: Option<RemoveOptions>,
     replace: Option<ReplaceOptions>,
-    pub(crate) _is_dir: bool,
+    is_dir: bool,
 }
 
 impl Renamer {
@@ -124,7 +117,7 @@ impl Renamer {
     }
 
     pub fn is_dir(&self) -> bool {
-        self.original.is_dir()
+        self.is_dir
     }
 
     pub fn preview(&mut self) -> PathBuf {
@@ -276,7 +269,7 @@ impl TryFrom<&Path> for Renamer {
                     valid_original,
                     extension,
                     original: path.to_owned(),
-                    _is_dir: path.is_dir(),
+                    is_dir: path.is_dir(),
                     ..Default::default()
                 })
             }
@@ -333,7 +326,7 @@ pub enum Options {
 
 impl Ord for Renamer {
     fn cmp(&self, other: &Self) -> Ordering {
-        match (self.original.is_dir(), other.original.is_dir()) {
+        match (self.is_dir, other.is_dir) {
             (true, true) => self.stem.cmp(&other.stem),
             (true, false) => Ordering::Less,
             (false, true) => Ordering::Greater,

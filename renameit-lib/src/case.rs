@@ -85,54 +85,6 @@ impl Process for CaseOptions {
     }
 }
 
-/*
-#[derive(Default)]
-pub struct CaseView {
-    data: CaseOptions,
-    width: f32,
-}
-impl CaseView {
-    pub fn new(width: f32) -> Self {
-        Self {
-            width,
-            ..Default::default()
-        }
-    }
-}
-
-impl OptionBuilder for CaseView {
-    type Processor = CaseOptions;
-
-    fn build(&self) -> CaseOptions {
-        self.data.clone()
-    }
-}
-
-impl Widget for &mut CaseView {
-    fn ui(self, ui: &mut Ui) -> Response {
-        ui.vertical(|ui| {
-            ui.set_width(self.width);
-            ui.label("Case");
-            ui.horizontal(|ui| {
-                ComboBox::from_id_source("Case")
-                    .selected_text(format!("{:?}", &mut self.data.case))
-                    .show_ui(ui, |ui| {
-                        for opt in Case::iterator() {
-                            ui.selectable_value(&mut self.data.case, opt, format!("{:?}", opt));
-                        }
-                    });
-                ui.checkbox(&mut self.data.snake, "Snake_Case")
-            });
-            ui.horizontal(|ui| {
-                ui.label("Except:");
-                ui.text_edit_singleline(&mut self.data.exceptions);
-            });
-        })
-        .response
-    }
-}
-*/
-
 #[cfg(test)]
 mod case_tests {
     use super::*;
