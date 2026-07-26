@@ -126,15 +126,26 @@ impl Files {
                     }
                 }
             }
+            Message::DirSelected(None) => {}
+            Message::DirSelected(Some(p)) => {
+                if self.new_dir(&p).is_some() {
+                    self.path_text = p.display().to_string();
+                }
+            }
+            Message::DirSubmitted => {
+                let p = &self.path_text.clone();
+                if PathBuf::from(p).is_dir() {
+                    self.new_dir(p);
+                }
+            }
             Message::FolderDialog => {
-                let mut dialog = rfd::FileDialog::new();
+                let mut dialog = rfd::AsyncFileDialog::new();
                 if let Some(p) = &self.path {
                     dialog = dialog.set_directory(p)
                 }
-                if let Some(path) = dialog.pick_folder() {
-                    self.new_dir(&path);
-                    self.path_text = path.display().to_string();
-                }
+                return Action::Run(Task::perform(dialog.pick_folder(), |res| {
+                    Message::DirSelected(res.map(|dir| dir.path().to_path_buf()))
+                }));
             }
             Message::HeaderPressed(index) => {
                 if index != 2 {
@@ -222,21 +233,14 @@ impl Files {
                 }
                 self.selected_changed();
             }
-            Message::Submitted => {
-                let p = &self.path_text.clone();
-                if PathBuf::from(p).is_dir() {
-                    self.new_dir(p);
-                }
-            }
             Message::SyncHeader(offset) => {
                 return Action::Run(widget::operation::scroll_to(self.header_id.clone(), offset));
             }
             Message::UpLevel => {
-                if let Some(path) = self.path.clone()
-                    && let Some(p) = path.parent()
-                {
-                    self.new_dir(p);
-                    self.path_text = p.display().to_string();
+                if let Some(path) = self.path.clone() {
+                    return Action::Run(Task::done(Message::DirSelected(
+                        path.parent().map(|p| p.to_path_buf()),
+                    )));
                 }
             }
         }
@@ -267,7 +271,7 @@ impl Files {
             row![
                 button("🗁").on_press(Message::FolderDialog),
                 text_input(&self.path_text, &self.path_text)
-                    .on_submit(Message::Submitted)
+                    .on_submit(Message::DirSubmitted)
                     .on_input(Message::NewDir),
                 button("▲").on_press(Message::UpLevel),
             ],
@@ -377,11 +381,12 @@ pub enum Message {
     ColumnDragged(usize, f32),
     ColumnReleased,
     FolderDialog,
+    DirSelected(Option<PathBuf>),
     HeaderPressed(usize),
     Modifier(Modifiers),
     NewDir(String),
     RowPressed(usize),
-    Submitted,
+    DirSubmitted,
     SyncHeader(scrollable::AbsoluteOffset),
     UpLevel,
 }
