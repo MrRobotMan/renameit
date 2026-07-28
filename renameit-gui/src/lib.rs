@@ -14,6 +14,7 @@ pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
     iced::application(move || app.take(), App::update, App::view)
         .title("Renameit!")
         .subscription(App::subscription)
+        .font(iced_aw::ICED_AW_FONT_BYTES)
         .run()?;
     Ok(())
 }

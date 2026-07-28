@@ -67,7 +67,6 @@ impl Default for Files {
         }
     }
 }
-
 impl Files {
     pub fn new<P: AsRef<Path>>(path: Option<P>) -> Self {
         let mut files = Self::default();
@@ -86,6 +85,12 @@ impl Files {
     }
 
     fn new_dir<S: AsRef<Path>>(&mut self, path: S) -> Option<PathBuf> {
+        self.last_row_selected = None;
+        self.sort_col = None;
+        self.sort_ascending = true;
+        for col in self.columns.iter_mut() {
+            col.sort = None;
+        }
         if let Ok(p) = get_directory(path.as_ref()) {
             self.path = Some(p);
             self.populate();
@@ -199,6 +204,7 @@ impl Files {
                     });
                     (self.rows, self.files) = zipped.into_iter().unzip();
                     self.selected.clear();
+                    self.last_row_selected = None;
                     self.selected_changed();
                 }
             }
