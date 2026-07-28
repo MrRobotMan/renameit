@@ -59,11 +59,11 @@ pub trait Process {
 ///
 /// ```
 /// # use std::path::{Path, PathBuf};
-/// # use renameit_lib::{NameOptions, Case, CaseOptions, Renamer, Process, Options};
+/// # use renameit_lib::{NameOptions, Case, CaseOptions, Renamer, Process, RenameOption};
 /// let file = Path::new("file.txt");
 /// let name = NameOptions::Fixed("new_name".into());
 /// let case = CaseOptions{case: Case::Upper, snake: false, exceptions: "n".into()};
-/// let mut rename = Renamer::new(file).unwrap().with_option(Options::Name(name)).with_option(Options::Case(case));
+/// let mut rename = Renamer::new(file).unwrap().with_option(RenameOption::Name(name)).with_option(RenameOption::Case(case));
 /// let new_name = rename.preview();
 /// assert_eq!(new_name, PathBuf::from("nEW_nAME.txt"));
 /// ```
@@ -185,24 +185,13 @@ impl Renamer {
     }
 
     /// Revert the previewed changes to a file.
-    pub fn revert(&mut self) -> PathBuf {
-        self.stem = self.reverted.0.clone();
-        self.extension = self.reverted.1.clone();
-        let name = PathBuf::from(&self.stem);
-        match &self.extension {
-            None => {
-                self.renamed = self.stem.clone();
-                name
-            }
-            Some(e) => {
-                self.renamed = format!("{}.{}", self.stem, e);
-                name.with_extension(e)
-            }
-        }
+    pub fn revert(&mut self) {
+        (self.stem, self.extension) = self.reverted.clone();
+        self.renamed = String::new();
     }
 
-    pub fn with_option(mut self, option: Options) -> Self {
-        use Options::*;
+    pub fn with_option(mut self, option: RenameOption) -> Self {
+        use RenameOption::*;
         match option {
             Regex(opt) => self.regex = Some(opt),
             Name(opt) => self.name = Some(opt),
@@ -217,31 +206,31 @@ impl Renamer {
         self
     }
 
-    pub fn add_option(&mut self, option: Options) {
+    pub fn add_option(&mut self, option: RenameOption) {
         match option {
-            Options::Regex(opt) => self.regex = Some(opt),
-            Options::Name(opt) => self.name = Some(opt),
-            Options::Case(opt) => self.case = Some(opt),
-            Options::Remove(opt) => self.remove = Some(opt),
-            Options::Add(opt) => self.add = Some(opt),
-            Options::Date(opt) => self.date = Some(opt),
-            Options::Folder(opt) => self.folder = Some(opt),
-            Options::Number(opt) => self.number = Some(opt),
-            Options::Extension(opt) => self.ext = Some(opt),
+            RenameOption::Regex(opt) => self.regex = Some(opt),
+            RenameOption::Name(opt) => self.name = Some(opt),
+            RenameOption::Case(opt) => self.case = Some(opt),
+            RenameOption::Remove(opt) => self.remove = Some(opt),
+            RenameOption::Add(opt) => self.add = Some(opt),
+            RenameOption::Date(opt) => self.date = Some(opt),
+            RenameOption::Folder(opt) => self.folder = Some(opt),
+            RenameOption::Number(opt) => self.number = Some(opt),
+            RenameOption::Extension(opt) => self.ext = Some(opt),
         }
     }
 
-    pub fn remove_option(&mut self, option: Options) {
+    pub fn remove_option(&mut self, option: RenameOption) {
         match option {
-            Options::Regex(_) => self.regex = None,
-            Options::Name(_) => self.name = None,
-            Options::Case(_) => self.case = None,
-            Options::Remove(_) => self.remove = None,
-            Options::Add(_) => self.add = None,
-            Options::Date(_) => self.date = None,
-            Options::Folder(_) => self.folder = None,
-            Options::Number(_) => self.number = None,
-            Options::Extension(_) => self.ext = None,
+            RenameOption::Regex(_) => self.regex = None,
+            RenameOption::Name(_) => self.name = None,
+            RenameOption::Case(_) => self.case = None,
+            RenameOption::Remove(_) => self.remove = None,
+            RenameOption::Add(_) => self.add = None,
+            RenameOption::Date(_) => self.date = None,
+            RenameOption::Folder(_) => self.folder = None,
+            RenameOption::Number(_) => self.number = None,
+            RenameOption::Extension(_) => self.ext = None,
         }
     }
 
@@ -319,10 +308,12 @@ impl TryFrom<&Path> for Renamer {
                     PathString::Valid(s) => (s, true),
                     PathString::Invalid(s) => (s, false),
                 };
+                let reverted = (stem.clone(), extension.clone());
                 Ok(Self {
                     stem,
                     valid_original,
                     extension,
+                    reverted,
                     original: path.to_owned(),
                     is_dir: path.is_dir(),
                     ..Default::default()
@@ -355,8 +346,8 @@ pub type Size = Option<u64>;
 pub type DateCreated = Option<DateTime<Local>>;
 pub type DateModified = Option<DateTime<Local>>;
 
-#[derive(Debug)]
-pub enum Options {
+#[derive(Debug, Clone)]
+pub enum RenameOption {
     Regex(RegexOptions),
     Name(NameOptions),
     Case(CaseOptions),
@@ -429,7 +420,9 @@ mod file_tests {
             rep: "ABC".into(),
             extension: false,
         };
-        let mut rename = Renamer::new(file).unwrap().with_option(Options::Regex(opt));
+        let mut rename = Renamer::new(file)
+            .unwrap()
+            .with_option(RenameOption::Regex(opt));
         let result = rename.preview();
         assert_eq!(result, expected)
     }
@@ -439,7 +432,9 @@ mod file_tests {
         let file = Path::new("file.txt");
         let expected = PathBuf::from("new_name.txt");
         let name = NameOptions::Fixed("new_name".into());
-        let mut rename = Renamer::new(file).unwrap().with_option(Options::Name(name));
+        let mut rename = Renamer::new(file)
+            .unwrap()
+            .with_option(RenameOption::Name(name));
         let new_name = rename.preview();
         assert_eq!(new_name, expected)
     }
@@ -456,7 +451,7 @@ mod file_tests {
         assert_eq!(Path::new("file-with-a-name.txt"), renamer.preview());
         assert!(matches!(
             renamer.rename(),
-            Err((p, FileError::Io(e))) if p == PathBuf::from("file_with_a_name.txt") && e.kind() == io::ErrorKind::NotFound
+            Err((p, FileError::Io(e))) if p == *"file_with_a_name.txt" && e.kind() == io::ErrorKind::NotFound
         ));
         let _ = fs::remove_file(file2);
         let _ = fs::remove_file("file-with-a-name.txt");

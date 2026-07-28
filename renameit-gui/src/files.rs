@@ -3,6 +3,7 @@ use std::{
     fs::read_dir,
     mem,
     path::{Path, PathBuf},
+    sync::Arc,
 };
 
 use chrono::{DateTime, Local};
@@ -13,7 +14,7 @@ use iced::{
 };
 use iced_table2::table::{Column, table};
 use renameit_lib::{
-    FileError, Renamer,
+    FileError, RenameOption, Renamer,
     helpers::{get_directory, get_start_dir},
 };
 
@@ -43,7 +44,6 @@ pub struct Files {
 
 impl Default for Files {
     fn default() -> Self {
-        // (stem, renamed, extension, size, date modified, date created)
         Self {
             files: Vec::new(),
             rows: Vec::new(),
@@ -102,18 +102,30 @@ impl Files {
         if let Ok(dir) = read_dir(path) {
             for pa in dir {
                 if let Ok(p) = pa
-                    && let Ok(mut file) = p.path().try_into()
+                    && let Ok(file) = p.path().try_into()
                 {
-                    self.rows.push(FileData::from(&mut file));
                     self.files.push(file);
                 }
             }
         }
+        self.files.sort();
+        self.rows = self.files.iter_mut().map(FileData::from).collect();
     }
 
     pub fn update(&mut self, message: Message) -> Action {
         let updating = matches!(&message, &Message::NewDir(_));
         match message {
+            Message::ClearOption(option) => {
+                for (idx, (file, row)) in
+                    self.files.iter_mut().zip(self.rows.iter_mut()).enumerate()
+                {
+                    file.remove_option(option.clone());
+                    file.revert();
+                    if self.selected.contains(&idx) {
+                        row.renamed = file.preview().display().to_string();
+                    }
+                }
+            }
             Message::ColumnDragged(index, offset) => {
                 if let Some(col) = self.columns.get_mut(index) {
                     col.resize_offset = Some(offset);
@@ -133,10 +145,7 @@ impl Files {
                 }
             }
             Message::DirSubmitted => {
-                let p = &self.path_text.clone();
-                if PathBuf::from(p).is_dir() {
-                    self.new_dir(p);
-                }
+                self.new_dir(self.path_text.clone());
             }
             Message::FolderDialog => {
                 let mut dialog = rfd::AsyncFileDialog::new();
@@ -232,6 +241,16 @@ impl Files {
                     }
                 }
                 self.selected_changed();
+                return Action::Reapply;
+            }
+            Message::SetOption(opt) => {
+                let mut indices = self.selected.iter().copied().collect::<Vec<_>>();
+                indices.sort();
+                for idx in indices {
+                    self.files[idx].revert();
+                    self.files[idx].add_option(opt(idx));
+                }
+                self.preview();
             }
             Message::SyncHeader(offset) => {
                 return Action::Run(widget::operation::scroll_to(self.header_id.clone(), offset));
@@ -281,8 +300,11 @@ impl Files {
     }
 
     fn selected_changed(&mut self) {
-        for (row, data) in self.rows.iter_mut().enumerate() {
+        for (row, (data, file)) in self.rows.iter_mut().zip(self.files.iter_mut()).enumerate() {
             data.is_selected = self.selected.contains(&row);
+            if !self.selected.contains(&row) {
+                file.clear_options();
+            }
         }
         self.preview();
     }
@@ -305,7 +327,8 @@ impl Files {
             let name = if self.selected.contains(&idx) {
                 file.preview()
             } else {
-                file.revert()
+                file.revert();
+                PathBuf::new()
             };
             row.renamed = name.display().to_string();
         }
@@ -374,19 +397,22 @@ impl<'a> Column<'a, Message, Theme, Renderer> for DisplayColumn {
 pub enum Action {
     None,
     Run(Task<Message>),
+    Reapply,
 }
 
 #[derive(Clone)]
 pub enum Message {
+    ClearOption(RenameOption),
     ColumnDragged(usize, f32),
     ColumnReleased,
     FolderDialog,
     DirSelected(Option<PathBuf>),
+    DirSubmitted,
     HeaderPressed(usize),
     Modifier(Modifiers),
     NewDir(String),
     RowPressed(usize),
-    DirSubmitted,
+    SetOption(Arc<dyn Fn(usize) -> RenameOption + Send + Sync>),
     SyncHeader(scrollable::AbsoluteOffset),
     UpLevel,
 }
@@ -436,7 +462,7 @@ impl From<&mut Renamer> for FileData {
         Self {
             original: data.0.to_string(),
             extension: data.2.map_or_else(String::new, str::to_string),
-            renamed: data.1.to_string(),
+            renamed: String::new(),
             size: data.3,
             size_string: data.3.map_or_else(String::new, |s| format!("{s} B")),
             modified: data.4,
