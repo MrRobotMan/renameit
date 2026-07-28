@@ -85,7 +85,6 @@ impl Files {
     }
 
     fn new_dir<S: AsRef<Path>>(&mut self, path: S) -> Option<PathBuf> {
-        self.last_row_selected = None;
         self.sort_col = None;
         self.sort_ascending = true;
         for col in self.columns.iter_mut() {
@@ -102,6 +101,7 @@ impl Files {
         self.files.clear();
         self.rows.clear();
         self.selected.clear();
+        self.last_row_selected = None;
         let Some(path) = &self.path else { return };
         // Only try to get files from the path if the path is valid and accessable.
         if let Ok(dir) = read_dir(path) {
