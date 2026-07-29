@@ -125,6 +125,7 @@ impl Renamer {
     }
 
     pub fn preview(&mut self) -> PathBuf {
+        self.revert();
         let mut opts: Vec<Box<dyn Process>> = vec![];
         if let Some(opt) = &self.regex {
             opts.push(Box::new(opt.clone()));
@@ -348,15 +349,15 @@ pub type DateModified = Option<DateTime<Local>>;
 
 #[derive(Debug, Clone)]
 pub enum RenameOption {
-    Regex(RegexOptions),
-    Name(NameOptions),
-    Case(CaseOptions),
-    Remove(RemoveOptions),
     Add(AddOptions),
+    Case(CaseOptions),
     Date(DateOptions),
-    Folder(FolderOptions),
-    Number(NumberOptions),
     Extension(ExtensionOptions),
+    Folder(FolderOptions),
+    Name(NameOptions),
+    Number(NumberOptions),
+    Regex(RegexOptions),
+    Remove(RemoveOptions),
 }
 
 impl Ord for Renamer {
@@ -455,5 +456,17 @@ mod file_tests {
         ));
         let _ = fs::remove_file(file2);
         let _ = fs::remove_file("file-with-a-name.txt");
+    }
+
+    #[test]
+    fn test_preview_does_not_reapply_options() {
+        let expected = PathBuf::from("aFile.txt");
+        let mut renamer = RenamerBuilder::new_unchecked(Path::new("file.txt"))
+            .with_case(Case::Title, false, String::new())
+            .with_add(Some("a".into()), None, None, false)
+            .build();
+        let _ = renamer.preview();
+        let actual = renamer.preview();
+        assert_eq!(expected, actual);
     }
 }
