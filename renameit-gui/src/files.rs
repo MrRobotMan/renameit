@@ -80,24 +80,24 @@ impl Files {
             .path
             .clone()
             .map_or_else(String::new, |p| p.display().to_string());
-        files.populate();
+        files.populate(Sorting::RenamerDefault);
         files
     }
 
     fn new_dir<S: AsRef<Path>>(&mut self, path: S) -> Option<PathBuf> {
-        self.sort_col = None;
-        self.sort_ascending = true;
-        for col in self.columns.iter_mut() {
-            col.sort = None;
-        }
         if let Ok(p) = get_directory(path.as_ref()) {
+            self.sort_col = None;
+            self.sort_ascending = true;
+            for col in self.columns.iter_mut() {
+                col.sort = None;
+            }
             self.path = Some(p);
-            self.populate();
+            self.populate(Sorting::RenamerDefault);
         }
         self.path.clone()
     }
 
-    fn populate(&mut self) {
+    fn populate(&mut self, sorting: Sorting) {
         self.files.clear();
         self.rows.clear();
         self.selected.clear();
@@ -113,8 +113,50 @@ impl Files {
                 }
             }
         }
-        self.files.sort();
-        self.rows = self.files.iter_mut().map(FileData::from).collect();
+        match sorting {
+            Sorting::RenamerDefault => {
+                // Sort files first in default order from Renamer::cmp
+                self.files.sort();
+                self.rows = self.files.iter_mut().map(FileData::from).collect();
+            }
+            Sorting::Current => {
+                self.rows = self.files.iter_mut().map(FileData::from).collect();
+                if let Some(col) = self.sort_col {
+                    // Build rows first so the sort functionality works correctly.
+                    self.sort(col);
+                }
+            }
+        }
+    }
+
+    fn sort(&mut self, index: usize) {
+        let mut zipped = self
+            .rows
+            .drain(..)
+            .zip(self.files.drain(..))
+            .collect::<Vec<_>>();
+        zipped.sort_by(|(a, f1), (b, f2)| {
+            let ord = match index {
+                0 => a.original.cmp(&b.original), // Sort by original name
+                1 => match (f1.is_dir(), f2.is_dir()) {
+                    // Sort by extension with directories on top.
+                    (true, false) => std::cmp::Ordering::Less,
+                    (false, true) => std::cmp::Ordering::Greater,
+                    _ => a.extension.cmp(&b.extension),
+                },
+                2 => std::cmp::Ordering::Equal, // Don't want to sort by renamed. Set it to equal always.
+                3 => a.size.cmp(&b.size),       // Sort by size
+                4 => a.modified.cmp(&b.modified), // Sort by date modified.
+                5 => a.created.cmp(&b.created), // Sort by date created.
+                _ => unreachable!("Bad index"),
+            };
+            if self.sort_ascending {
+                ord
+            } else {
+                ord.reverse()
+            }
+        });
+        (self.rows, self.files) = zipped.into_iter().unzip();
     }
 
     pub fn update(&mut self, message: Message) -> Action {
@@ -176,33 +218,7 @@ impl Files {
                             None
                         };
                     }
-                    let mut zipped = self
-                        .rows
-                        .drain(..)
-                        .zip(self.files.drain(..))
-                        .collect::<Vec<_>>();
-                    zipped.sort_by(|(a, f1), (b, f2)| {
-                        let ord = match index {
-                            0 => a.original.cmp(&b.original), // Sort by original name
-                            1 => match (f1.is_dir(), f2.is_dir()) {
-                                // Sort by extension with directories on top.
-                                (true, false) => std::cmp::Ordering::Less,
-                                (false, true) => std::cmp::Ordering::Greater,
-                                _ => a.extension.cmp(&b.extension),
-                            },
-                            2 => std::cmp::Ordering::Equal, // Sort by new name. No-op.
-                            3 => a.size.cmp(&b.size),       // Sort by size
-                            4 => a.modified.cmp(&b.modified), // Sort by date modified.
-                            5 => a.created.cmp(&b.created), // Sort by date created.
-                            _ => unreachable!("Bad index"),
-                        };
-                        if self.sort_ascending {
-                            ord
-                        } else {
-                            ord.reverse()
-                        }
-                    });
-                    (self.rows, self.files) = zipped.into_iter().unzip();
+                    self.sort(index);
                     self.selected.clear();
                     self.last_row_selected = None;
                     self.selected_changed();
@@ -324,7 +340,7 @@ impl Files {
             }
         }
         self.selected.clear();
-        self.populate();
+        self.populate(Sorting::Current);
         errors
     }
 
@@ -421,6 +437,11 @@ pub enum Message {
     SetOption(Arc<dyn Fn(usize) -> RenameOption + Send + Sync>),
     SyncHeader(scrollable::AbsoluteOffset),
     UpLevel,
+}
+
+enum Sorting {
+    RenamerDefault,
+    Current,
 }
 
 #[derive(Clone)]
