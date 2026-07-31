@@ -1,6 +1,6 @@
 use std::{error::Error, path::Path, time::SystemTime};
 
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 use chrono::{DateTime, Local};
 
 /// Use the prefix or suffix `Mode` to modify the filename with a date format.

@@ -1,4 +1,4 @@
-use super::{Action, OptionBox};
+use crate::{Action, OptionBox};
 use iced::{
     Element, Font,
     widget::{button, column, combo_box, text_input},

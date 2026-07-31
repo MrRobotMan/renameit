@@ -1,6 +1,6 @@
 use std::slice::Iter;
 
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 
 /// Select from.
 /// - `NameOptions::Keep` - Do not change the original file name (default).

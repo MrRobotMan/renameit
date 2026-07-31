@@ -1,4 +1,4 @@
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 
 /// Options for removing parts of the filename.
 /// Remove specific parts of a filename but not file extensions.

@@ -1,4 +1,4 @@
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 use inflector::Inflector;
 
 /// Change the case of the file.

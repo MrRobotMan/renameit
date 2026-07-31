@@ -1,4 +1,4 @@
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 use std::fmt::Write;
 
 /// Add sequential numbers to the file.

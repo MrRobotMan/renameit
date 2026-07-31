@@ -1,4 +1,4 @@
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 
 /// Options for basic renaming rules.
 /// - `replace` - text to be replaced

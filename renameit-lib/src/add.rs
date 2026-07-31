@@ -1,4 +1,4 @@
-use super::{Process, Renamer};
+use crate::{Process, Renamer};
 
 /// Add a fixed `Prefix` or`Suffix` to the filename,
 /// or `Insert` text at a specific location (0 indexed, negative to index from the end).
