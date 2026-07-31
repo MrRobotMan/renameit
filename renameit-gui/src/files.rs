@@ -226,6 +226,7 @@ impl Files {
             }
             Message::Modifier(m) => self.modifiers = m,
             Message::NewDir(text) => self.path_text = text,
+            Message::Process => return Action::Errors(self.process()),
             Message::RowPressed(index) => {
                 let ctrl = self.modifiers.command();
                 let shift = self.modifiers.shift();
@@ -269,7 +270,6 @@ impl Files {
                 let mut indices = self.selected.iter().copied().collect::<Vec<_>>();
                 indices.sort();
                 for idx in indices {
-                    self.files[idx].revert();
                     self.files[idx].add_option(opt(idx));
                 }
                 self.preview();
@@ -311,10 +311,10 @@ impl Files {
         column![
             row![
                 button("🗁").on_press(Message::FolderDialog),
+                button("▲").on_press(Message::UpLevel),
                 text_input(&self.path_text, &self.path_text)
                     .on_submit(Message::DirSubmitted)
                     .on_input(Message::NewDir),
-                button("▲").on_press(Message::UpLevel),
             ],
             tbl
         ]
@@ -331,7 +331,7 @@ impl Files {
         self.preview();
     }
 
-    pub fn _process(&mut self) -> Vec<(PathBuf, FileError)> {
+    pub fn process(&mut self) -> Vec<(PathBuf, FileError)> {
         let mut errors = Vec::new();
         for idx in &self.selected {
             let ren = mem::take(&mut self.files[*idx]);
@@ -417,6 +417,7 @@ impl<'a> Column<'a, Message, Theme, Renderer> for DisplayColumn {
 }
 
 pub enum Action {
+    Errors(Vec<(PathBuf, FileError)>),
     None,
     Run(Task<Message>),
     Reapply,
@@ -433,6 +434,7 @@ pub enum Message {
     HeaderPressed(usize),
     Modifier(Modifiers),
     NewDir(String),
+    Process,
     RowPressed(usize),
     SetOption(Arc<dyn Fn(usize) -> RenameOption + Send + Sync>),
     SyncHeader(scrollable::AbsoluteOffset),

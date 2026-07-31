@@ -1,4 +1,4 @@
-use crate::{Action, OptionBox, input_field};
+use super::{Action, OptionBox, input_field};
 use iced::{
     Element,
     widget::{button, checkbox, column, text_input},

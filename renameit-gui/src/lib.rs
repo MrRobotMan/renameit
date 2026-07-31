@@ -1,13 +1,26 @@
-use std::{cell::Cell, path::Path, sync::Arc};
+use std::{
+    cell::Cell,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 use iced::{
     self, Element, Subscription, Task, keyboard,
-    widget::{Row, column, row, text},
+    widget::{Row, button, column, row, text},
 };
 
 mod add_view;
 mod files;
-use renameit_lib::{DirectoryError, RenameOption};
+// mod case_view;
+// mod date_view;
+// mod extension_view;
+// mod folder_view;
+mod name_view;
+// mod number_view;
+mod regex_view;
+// mod remove_view;
+// mod replace_view;
+use renameit_lib::{DirectoryError, FileError, RenameOption};
 
 pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
     let app = Cell::new(App::new(initial_dir));
@@ -21,9 +34,34 @@ pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
 
 #[derive(Default)]
 struct App {
+    errors: Vec<(PathBuf, FileError)>,
     files: files::Files,
     add: add_view::AddView,
+    // case: case_view::CaseView,
+    // date: date_view::DateView,
+    // extension: extension_view::ExtensionView,
+    // folder: folder_view::FolderView,
+    name: name_view::NameView,
+    // number: number_view::NumberView,
+    regex: regex_view::RegexView,
+    // remove: remove_view::RemoveView,
+    // replace: replace_view::ReplaceView,
 }
+
+// macro_rules! match_option {
+//     ($self:ident, $field:ident, $variant:ident, $msg:ident) => {
+//         Message::$variant($msg) => {
+//             match $self.$field.update($msg){
+//                 Action::Update => {
+//                     return $self.apply_option($self.$field.clone());
+//                 }
+//                 Action::Remove => {
+//                     return $self.remove_option($self.$field.to_options(0));
+//                 }
+//             }
+//         }
+//     };
+// }
 
 impl App {
     fn new<P: AsRef<Path>>(initial_dir: Option<P>) -> Self {
@@ -36,6 +74,32 @@ impl App {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::Files(message) => match self.files.update(message) {
+                files::Action::None | files::Action::Errors(_) => {}
+                files::Action::Run(task) => return task.map(Message::Files),
+                files::Action::Reapply => return self.reapply(),
+            },
+            Message::Confirmed => {
+                if let files::Action::Errors(items) = self.files.update(files::Message::Process) {
+                    self.errors = items
+                }
+            }
+            Message::Rename => {
+                let dialog = rfd::AsyncMessageDialog::new()
+                    .set_title("Confirm Renaming")
+                    .set_description("Are you sure you want to rename the selection? This action can not be undone.")
+                    .set_buttons(rfd::MessageButtons::YesNo)
+                    .set_level(rfd::MessageLevel::Warning);
+                return Task::perform(dialog.show(), |answer| {
+                    if answer == rfd::MessageDialogResult::Yes {
+                        Message::Confirmed
+                    } else {
+                        Message::None
+                    }
+                });
+            }
+            Message::None => {}
+            // match_option!(self, add, Add, message),
             Message::Add(message) => match self.add.update(message) {
                 Action::Update => {
                     return self.apply_option(self.add.clone());
@@ -44,28 +108,47 @@ impl App {
                     return self.remove_option(self.add.to_options(0));
                 }
             },
-            Message::Files(message) => match self.files.update(message) {
-                files::Action::None => {}
-                files::Action::Run(task) => return task.map(Message::Files),
-                files::Action::Reapply => return self.reapply(),
+            Message::Name(message) => match self.name.update(message) {
+                Action::Update => {
+                    return self.apply_option(self.name.to_option_box());
+                }
+                Action::Remove => {
+                    return self.remove_option(self.name.to_option_box().to_options(0));
+                }
             },
-            Message::None => {}
+            Message::Regex(message) => match self.regex.update(message) {
+                Action::Update => {
+                    return self.apply_option(self.regex.clone());
+                }
+                Action::Remove => {
+                    return self.remove_option(self.regex.to_options(0));
+                }
+            },
+            Message::Case
+            | Message::Date
+            | Message::Extension
+            | Message::Folder
+            | Message::Number
+            | Message::Remove
+            | Message::Replace => {}
         }
         Task::none()
     }
 
     fn apply_option(&mut self, option: impl OptionBox + Send + Sync + 'static) -> Task<Message> {
         let opt = Arc::new(move |idx| option.to_options(idx));
-        match self.files.update(files::Message::SetOption(opt)) {
-            files::Action::None | files::Action::Reapply => Task::none(),
-            files::Action::Run(task) => task.map(Message::Files),
+        if let files::Action::Run(task) = self.files.update(files::Message::SetOption(opt)) {
+            task.map(Message::Files)
+        } else {
+            Task::none()
         }
     }
 
     fn remove_option(&mut self, option: RenameOption) -> Task<Message> {
-        match self.files.update(files::Message::ClearOption(option)) {
-            files::Action::None | files::Action::Reapply => Task::none(),
-            files::Action::Run(task) => task.map(Message::Files),
+        if let files::Action::Run(task) = self.files.update(files::Message::ClearOption(option)) {
+            task.map(Message::Files)
+        } else {
+            Task::none()
         }
     }
 
@@ -76,7 +159,33 @@ impl App {
     fn view(&self) -> Element<'_, Message> {
         column![
             self.files.view().map(Message::Files),
-            row![self.add.view().map(Message::Add)]
+            //    -  1 RegEx
+            //    -  2 Name
+            //    -  3 Replace
+            //    -  4 Case
+            //    -  5 Remove
+            //    -  6 Add
+            //    -  7 Auto Date
+            //    -  8 Append Folder Name
+            //    -  9 Numbering
+            //    - 10 Extension
+            row![
+                column![
+                    self.regex.view().map(Message::Regex),
+                    self.name.view().map(Message::Name),
+                ],
+                // column![
+                // self.replace.view().map(Message::Replace),
+                // self.case.view().map(Message::Case),
+                // ],
+                // self.remove.view().map(Message::Remove),
+                self.add.view().map(Message::Add),
+                // self.date.view().map(Message::Date),
+                // self.folder.view().map(Message::Folder),
+                // self.number.view().map(Message::Number),
+                // self.extension.view().map(Message::Extension),
+                button("Rename").on_press(Message::Rename)
+            ]
         ]
         .into()
     }
@@ -100,8 +209,19 @@ fn input_field<'a, M: 'a>(label: &'a str, widget: Element<'a, M>) -> Row<'a, M> 
 #[derive(Clone)]
 enum Message {
     Add(add_view::Message),
+    Case,
+    Confirmed,
+    Date,
+    Extension,
     Files(files::Message),
+    Folder,
+    Name(name_view::Message),
     None,
+    Number,
+    Regex(regex_view::Message),
+    Remove,
+    Rename,
+    Replace,
 }
 
 enum Action {
