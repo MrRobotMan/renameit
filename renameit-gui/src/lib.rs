@@ -10,8 +10,8 @@ use iced::{
 };
 
 mod add_view;
+mod case_view;
 mod files;
-// mod case_view;
 // mod date_view;
 // mod extension_view;
 // mod folder_view;
@@ -37,7 +37,7 @@ struct App {
     errors: Vec<(PathBuf, FileError)>,
     files: files::Files,
     add: add_view::AddView,
-    // case: case_view::CaseView,
+    case: case_view::CaseView,
     // date: date_view::DateView,
     // extension: extension_view::ExtensionView,
     // folder: folder_view::FolderView,
@@ -48,20 +48,28 @@ struct App {
     // replace: replace_view::ReplaceView,
 }
 
-// macro_rules! match_option {
-//     ($self:ident, $field:ident, $variant:ident, $msg:ident) => {
-//         Message::$variant($msg) => {
-//             match $self.$field.update($msg){
-//                 Action::Update => {
-//                     return $self.apply_option($self.$field.clone());
-//                 }
-//                 Action::Remove => {
-//                     return $self.remove_option($self.$field.to_options(0));
-//                 }
-//             }
-//         }
-//     };
-// }
+macro_rules! match_option {
+    ($self:ident, $field:ident, $variant:ident, $msg:ident) => {{
+        match $self.$field.update($msg) {
+            Action::Update => {
+                return $self.apply_option($self.$field.clone());
+            }
+            Action::Remove => {
+                return $self.remove_option($self.$field.to_options(0));
+            }
+        }
+    }};
+    ($self:ident, $field:ident, $variant:ident, $msg:ident, $func:ident) => {{
+        match $self.$field.update($msg) {
+            Action::Update => {
+                return $self.apply_option($self.$field.$func());
+            }
+            Action::Remove => {
+                return $self.remove_option($self.$field.$func().to_options(0));
+            }
+        }
+    }};
+}
 
 impl App {
     fn new<P: AsRef<Path>>(initial_dir: Option<P>) -> Self {
@@ -99,33 +107,11 @@ impl App {
                 });
             }
             Message::None => {}
-            // match_option!(self, add, Add, message),
-            Message::Add(message) => match self.add.update(message) {
-                Action::Update => {
-                    return self.apply_option(self.add.clone());
-                }
-                Action::Remove => {
-                    return self.remove_option(self.add.to_options(0));
-                }
-            },
-            Message::Name(message) => match self.name.update(message) {
-                Action::Update => {
-                    return self.apply_option(self.name.to_option_box());
-                }
-                Action::Remove => {
-                    return self.remove_option(self.name.to_option_box().to_options(0));
-                }
-            },
-            Message::Regex(message) => match self.regex.update(message) {
-                Action::Update => {
-                    return self.apply_option(self.regex.clone());
-                }
-                Action::Remove => {
-                    return self.remove_option(self.regex.to_options(0));
-                }
-            },
-            Message::Case
-            | Message::Date
+            Message::Add(message) => match_option!(self, add, Add, message),
+            Message::Case(message) => match_option!(self, case, Case, message, to_option_box),
+            Message::Name(message) => match_option!(self, name, Name, message, to_option_box),
+            Message::Regex(message) => match_option!(self, regex, Regex, message),
+            Message::Date
             | Message::Extension
             | Message::Folder
             | Message::Number
@@ -174,10 +160,10 @@ impl App {
                     self.regex.view().map(Message::Regex),
                     self.name.view().map(Message::Name),
                 ],
-                // column![
-                // self.replace.view().map(Message::Replace),
-                // self.case.view().map(Message::Case),
-                // ],
+                column![
+                    // self.replace.view().map(Message::Replace),
+                    self.case.view().map(Message::Case),
+                ],
                 // self.remove.view().map(Message::Remove),
                 self.add.view().map(Message::Add),
                 // self.date.view().map(Message::Date),
@@ -209,7 +195,7 @@ fn input_field<'a, M: 'a>(label: &'a str, widget: Element<'a, M>) -> Row<'a, M> 
 #[derive(Clone)]
 enum Message {
     Add(add_view::Message),
-    Case,
+    Case(case_view::Message),
     Confirmed,
     Date,
     Extension,

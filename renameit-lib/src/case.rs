@@ -50,6 +50,18 @@ impl Case {
     }
 }
 
+impl std::fmt::Display for Case {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Case::Keep => "Keep",
+            Case::Lower => "Lower",
+            Case::Upper => "Upper",
+            Case::Title => "Title",
+            Case::Sentence => "Sentence",
+        })
+    }
+}
+
 impl Process for CaseOptions {
     fn process(&self, file: &mut Renamer) {
         match self.case {
