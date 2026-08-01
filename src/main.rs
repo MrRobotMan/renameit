@@ -27,11 +27,10 @@ fn main() -> Result<(), AnyError> {
 // if nothing is provided. If the provided path is a file, the file's parent
 // is returned.
 fn get_initial_directory() -> Result<PathBuf, DirectoryError> {
-    if let Some(arg) = env::args().nth(1) {
-        get_directory(arg)
-    } else {
-        env::current_dir().or_else(|_| get_start_dir())
-    }
+    env::args().nth(1).map_or_else(
+        || env::current_dir().or_else(|_| get_start_dir()),
+        get_directory,
+    )
 }
 
 #[derive(Debug, Error)]
