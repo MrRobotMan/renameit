@@ -19,7 +19,7 @@ mod name_view;
 // mod number_view;
 mod regex_view;
 // mod remove_view;
-// mod replace_view;
+mod replace_view;
 use renameit_lib::{DirectoryError, FileError, RenameOption};
 
 pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
@@ -45,7 +45,7 @@ struct App {
     // number: number_view::NumberView,
     regex: regex_view::RegexView,
     // remove: remove_view::RemoveView,
-    // replace: replace_view::ReplaceView,
+    replace: replace_view::ReplaceView,
 }
 
 macro_rules! match_option {
@@ -111,12 +111,12 @@ impl App {
             Message::Case(message) => match_option!(self, case, Case, message, to_option_box),
             Message::Name(message) => match_option!(self, name, Name, message, to_option_box),
             Message::Regex(message) => match_option!(self, regex, Regex, message),
+            Message::Replace(message) => match_option!(self, replace, Replace, message),
             Message::Date
             | Message::Extension
             | Message::Folder
             | Message::Number
-            | Message::Remove
-            | Message::Replace => {}
+            | Message::Remove => {}
         }
         Task::none()
     }
@@ -161,7 +161,7 @@ impl App {
                     self.name.view().map(Message::Name),
                 ],
                 column![
-                    // self.replace.view().map(Message::Replace),
+                    self.replace.view().map(Message::Replace),
                     self.case.view().map(Message::Case),
                 ],
                 // self.remove.view().map(Message::Remove),
@@ -207,7 +207,7 @@ enum Message {
     Regex(regex_view::Message),
     Remove,
     Rename,
-    Replace,
+    Replace(replace_view::Message),
 }
 
 enum Action {

@@ -192,46 +192,37 @@ impl Renamer {
     }
 
     pub fn with_option(mut self, option: RenameOption) -> Self {
-        use RenameOption::*;
-        match option {
-            Regex(opt) => self.regex = Some(opt),
-            Name(opt) => self.name = Some(opt),
-            Case(opt) => self.case = Some(opt),
-            Remove(opt) => self.remove = Some(opt),
-            Add(opt) => self.add = Some(opt),
-            Date(opt) => self.date = Some(opt),
-            Folder(opt) => self.folder = Some(opt),
-            Number(opt) => self.number = Some(opt),
-            Extension(opt) => self.ext = Some(opt),
-        }
+        self.add_option(option);
         self
     }
 
     pub fn add_option(&mut self, option: RenameOption) {
         match option {
-            RenameOption::Regex(opt) => self.regex = Some(opt),
-            RenameOption::Name(opt) => self.name = Some(opt),
-            RenameOption::Case(opt) => self.case = Some(opt),
-            RenameOption::Remove(opt) => self.remove = Some(opt),
             RenameOption::Add(opt) => self.add = Some(opt),
+            RenameOption::Case(opt) => self.case = Some(opt),
             RenameOption::Date(opt) => self.date = Some(opt),
-            RenameOption::Folder(opt) => self.folder = Some(opt),
-            RenameOption::Number(opt) => self.number = Some(opt),
             RenameOption::Extension(opt) => self.ext = Some(opt),
+            RenameOption::Folder(opt) => self.folder = Some(opt),
+            RenameOption::Name(opt) => self.name = Some(opt),
+            RenameOption::Number(opt) => self.number = Some(opt),
+            RenameOption::Regex(opt) => self.regex = Some(opt),
+            RenameOption::Remove(opt) => self.remove = Some(opt),
+            RenameOption::Replace(opt) => self.replace = Some(opt),
         }
     }
 
     pub fn remove_option(&mut self, option: RenameOption) {
         match option {
-            RenameOption::Regex(_) => self.regex = None,
-            RenameOption::Name(_) => self.name = None,
-            RenameOption::Case(_) => self.case = None,
-            RenameOption::Remove(_) => self.remove = None,
             RenameOption::Add(_) => self.add = None,
+            RenameOption::Case(_) => self.case = None,
             RenameOption::Date(_) => self.date = None,
-            RenameOption::Folder(_) => self.folder = None,
-            RenameOption::Number(_) => self.number = None,
             RenameOption::Extension(_) => self.ext = None,
+            RenameOption::Folder(_) => self.folder = None,
+            RenameOption::Name(_) => self.name = None,
+            RenameOption::Number(_) => self.number = None,
+            RenameOption::Regex(_) => self.regex = None,
+            RenameOption::Remove(_) => self.remove = None,
+            RenameOption::Replace(_) => self.replace = None,
         }
     }
 
@@ -358,6 +349,7 @@ pub enum RenameOption {
     Number(NumberOptions),
     Regex(RegexOptions),
     Remove(RemoveOptions),
+    Replace(ReplaceOptions),
 }
 
 impl Ord for Renamer {
