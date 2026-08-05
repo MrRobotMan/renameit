@@ -14,12 +14,12 @@ use chrono::{DateTime, Local};
 /// [chrono::format::strftime](https://docs.rs/chrono/0.4.31/chrono/format/strftime/index.html) specifiers.
 #[derive(Default, Debug, Clone)]
 pub struct DateOptions {
-    pub(super) date_mode: DateMode,
-    pub(super) date_type: DateType,
-    pub(super) fmt: DateFormat,
-    pub(super) sep: String,
-    pub(super) seg: String,
-    pub(super) full_year: bool,
+    pub date_mode: DateMode,
+    pub date_type: DateType,
+    pub fmt: DateFormat,
+    pub sep: String,
+    pub seg: String,
+    pub full_year: bool,
 }
 
 impl Process for DateOptions {
@@ -74,6 +74,16 @@ pub enum DateMode {
     None,
 }
 
+impl std::fmt::Display for DateMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            DateMode::Prefix => "Prefix",
+            DateMode::Suffix => "Suffix",
+            DateMode::None => "None",
+        })
+    }
+}
+
 /// Select from
 /// - `DateType::Created` for the file creation date
 /// - `Datetype::Modified` for the date last modified
@@ -89,6 +99,16 @@ pub enum DateType {
     Current,
 }
 
+impl std::fmt::Display for DateType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            DateType::Created => "Created",
+            DateType::Modified => "Modified",
+            DateType::Current => "Current",
+        })
+    }
+}
+
 /// Select from
 /// - `DateFormat::Std(DatePrefix, Option<DateSuffix>)` to use the standard options
 /// - `DateFormat::Custom` to use a custom `strftime` format
@@ -101,6 +121,23 @@ pub enum DateFormat {
 impl Default for DateFormat {
     fn default() -> Self {
         Self::Std((DatePrefix::Dmy, None))
+    }
+}
+
+impl std::fmt::Display for DateFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            Self::Std((DatePrefix::Dmy, None)) => "DMY",
+            Self::Std((DatePrefix::Mdy, None)) => "MDY",
+            Self::Std((DatePrefix::Ymd, None)) => "YMD",
+            Self::Std((DatePrefix::Dmy, Some(DateSuffix::Hm))) => "DMY HM",
+            Self::Std((DatePrefix::Mdy, Some(DateSuffix::Hm))) => "MDY HM",
+            Self::Std((DatePrefix::Ymd, Some(DateSuffix::Hm))) => "YMD HM",
+            Self::Std((DatePrefix::Dmy, Some(DateSuffix::Hms))) => "DMY HMS",
+            Self::Std((DatePrefix::Mdy, Some(DateSuffix::Hms))) => "MDY HMS",
+            Self::Std((DatePrefix::Ymd, Some(DateSuffix::Hms))) => "YMD HMS",
+            Self::Custom(_) => "Custom",
+        })
     }
 }
 

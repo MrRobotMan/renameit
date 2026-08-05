@@ -11,9 +11,9 @@ use iced::{
 
 mod add_view;
 mod case_view;
+mod date_view;
+mod extension_view;
 mod files;
-// mod date_view;
-// mod extension_view;
 // mod folder_view;
 mod name_view;
 // mod number_view;
@@ -38,8 +38,8 @@ struct App {
     files: files::Files,
     add: add_view::AddView,
     case: case_view::CaseView,
-    // date: date_view::DateView,
-    // extension: extension_view::ExtensionView,
+    date: date_view::DateView,
+    extension: extension_view::ExtensionView,
     // folder: folder_view::FolderView,
     name: name_view::NameView,
     // number: number_view::NumberView,
@@ -109,14 +109,14 @@ impl App {
             Message::None => {}
             Message::Add(message) => match_option!(self, add, Add, message),
             Message::Case(message) => match_option!(self, case, Case, message, to_option_box),
+            Message::Date(message) => match_option!(self, date, Date, message, to_option_box),
             Message::Name(message) => match_option!(self, name, Name, message, to_option_box),
             Message::Regex(message) => match_option!(self, regex, Regex, message),
             Message::Replace(message) => match_option!(self, replace, Replace, message),
-            Message::Date
-            | Message::Extension
-            | Message::Folder
-            | Message::Number
-            | Message::Remove => {}
+            Message::Extension(message) => {
+                match_option!(self, extension, Extension, message, to_option_box)
+            }
+            Message::Folder | Message::Number | Message::Remove => {}
         }
         Task::none()
     }
@@ -166,10 +166,10 @@ impl App {
                 ],
                 // self.remove.view().map(Message::Remove),
                 self.add.view().map(Message::Add),
-                // self.date.view().map(Message::Date),
+                self.date.view().map(Message::Date),
                 // self.folder.view().map(Message::Folder),
                 // self.number.view().map(Message::Number),
-                // self.extension.view().map(Message::Extension),
+                self.extension.view().map(Message::Extension),
                 button("Rename").on_press(Message::Rename)
             ]
         ]
@@ -188,8 +188,8 @@ trait OptionBox {
     fn to_options(&self, index: usize) -> RenameOption;
 }
 
-fn input_field<'a, M: 'a>(label: &'a str, widget: Element<'a, M>) -> Row<'a, M> {
-    row![text(label), widget]
+fn input_field<'a, M: 'a, S: Into<String> + 'a>(label: S, widget: Element<'a, M>) -> Row<'a, M> {
+    row![text(label.into()), widget]
 }
 
 #[derive(Clone)]
@@ -197,8 +197,8 @@ enum Message {
     Add(add_view::Message),
     Case(case_view::Message),
     Confirmed,
-    Date,
-    Extension,
+    Date(date_view::Message),
+    Extension(extension_view::Message),
     Files(files::Message),
     Folder,
     Name(name_view::Message),
