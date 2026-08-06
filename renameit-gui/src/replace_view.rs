@@ -48,7 +48,7 @@ impl ReplaceView {
                             .on_toggle(Message::Toggle)
                             .into()
                     ),
-                    button("Reset").on_press(Message::Reset)
+                    button("Clear").on_press(Message::Reset)
                 ]
             ],
         )

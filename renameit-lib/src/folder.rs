@@ -80,6 +80,16 @@ pub enum FolderMode {
     Suffix,
 }
 
+impl std::fmt::Display for FolderMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
+            FolderMode::None => "None",
+            FolderMode::Prefix => "Prefix",
+            FolderMode::Suffix => "Suffix",
+        })
+    }
+}
+
 #[cfg(test)]
 mod folder_tests {
     use super::*;

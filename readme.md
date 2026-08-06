@@ -1,23 +1,20 @@
-TODO:
-- File tree
-- Selected folder display
-    - name
-    - new name
-    - file type
-    - date modified
-- Fields
-    - RegEx (1)
-    - Name (2)
-    - Replace (3)
-    - Case (4)
-    - Remove (5)
-    - Add (6)
-    - Auto Date (7)
-    - Append Folder Name (9)
-    - Numbering (10)
-    - Extension (11)
-- Buttons
-    - Preview
-    - Reset
-    - Rename
-- Warning popup with toggle to not show again.
+# Renameit
+
+A multi-platform utility to rename en-masse files and folders on the operating system.
+
+
+Renaming options include:
+- Regex patterns
+- Name keeping, removing, resetting, reversal
+- Basic string replacement
+- Changing case
+- Removing from the start, end, or a range
+- Removing categories of characters
+- Adding strings at the start, end, or a position
+- Dates from modified or created stamps
+- Auto-incrementing numbers
+- Including parent folder names
+- Changing, removing, adding, or modifying the case of extensions
+- Relocating or copying parts to/from the start, end, or a position 
+
+

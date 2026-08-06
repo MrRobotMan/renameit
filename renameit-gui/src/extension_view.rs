@@ -5,7 +5,7 @@ use iced::{
 use iced_aw::widget::LabeledFrame;
 use renameit_lib::{ExtensionOptions, RenameOption};
 
-use crate::{Action, OptionBox, input_field};
+use crate::{Action, OptionBox};
 
 #[derive(Debug, Clone)]
 pub struct ExtensionView {
@@ -73,7 +73,7 @@ impl ExtensionView {
                     };
                     w
                 },
-                button("Reset").on_press(Message::Reset)
+                button("Clear").on_press(Message::Reset)
             ],
         )
         .into()

@@ -152,7 +152,7 @@ impl DateView {
                         "YYYY",
                         checkbox(self.full_year).on_toggle(Message::Toggle).into()
                     ),
-                    button("Reset").on_press(Message::Reset)
+                    button("Clear").on_press(Message::Reset)
                 ],
             ]
             .width(200),

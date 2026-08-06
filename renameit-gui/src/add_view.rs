@@ -75,7 +75,7 @@ impl AddView {
                         .on_toggle(Message::BoxToggle)
                         .into()
                 ),
-                button("Reset").on_press(Message::Reset)
+                button("Clear").on_press(Message::Reset)
             ],
         )
         .into()

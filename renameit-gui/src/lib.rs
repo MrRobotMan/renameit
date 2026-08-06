@@ -14,11 +14,11 @@ mod case_view;
 mod date_view;
 mod extension_view;
 mod files;
-// mod folder_view;
+mod folder_view;
 mod name_view;
-// mod number_view;
+mod number_view;
 mod regex_view;
-// mod remove_view;
+mod remove_view;
 mod replace_view;
 use renameit_lib::{DirectoryError, FileError, RenameOption};
 
@@ -40,11 +40,11 @@ struct App {
     case: case_view::CaseView,
     date: date_view::DateView,
     extension: extension_view::ExtensionView,
-    // folder: folder_view::FolderView,
+    folder: folder_view::FolderView,
     name: name_view::NameView,
-    // number: number_view::NumberView,
+    number: number_view::NumberView,
     regex: regex_view::RegexView,
-    // remove: remove_view::RemoveView,
+    remove: remove_view::RemoveView,
     replace: replace_view::ReplaceView,
 }
 
@@ -116,7 +116,9 @@ impl App {
             Message::Extension(message) => {
                 match_option!(self, extension, Extension, message, to_option_box)
             }
-            Message::Folder | Message::Number | Message::Remove => {}
+            Message::Folder(message) => match_option!(self, folder, Folder, message, to_option_box),
+            Message::Number(message) => match_option!(self, number, Number, message, to_option_box),
+            Message::Remove(message) => match_option!(self, remove, Remove, message),
         }
         Task::none()
     }
@@ -164,11 +166,11 @@ impl App {
                     self.replace.view().map(Message::Replace),
                     self.case.view().map(Message::Case),
                 ],
-                // self.remove.view().map(Message::Remove),
+                self.remove.view().map(Message::Remove),
                 self.add.view().map(Message::Add),
                 self.date.view().map(Message::Date),
-                // self.folder.view().map(Message::Folder),
-                // self.number.view().map(Message::Number),
+                self.folder.view().map(Message::Folder),
+                self.number.view().map(Message::Number),
                 self.extension.view().map(Message::Extension),
                 button("Rename").on_press(Message::Rename)
             ]
@@ -200,12 +202,12 @@ enum Message {
     Date(date_view::Message),
     Extension(extension_view::Message),
     Files(files::Message),
-    Folder,
+    Folder(folder_view::Message),
     Name(name_view::Message),
     None,
-    Number,
+    Number(number_view::Message),
     Regex(regex_view::Message),
-    Remove,
+    Remove(remove_view::Message),
     Rename,
     Replace(replace_view::Message),
 }

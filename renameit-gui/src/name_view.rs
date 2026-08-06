@@ -78,7 +78,7 @@ impl NameView {
                     side: text_input::Side::Right,
                 }),
                 text_input("", &self.text).on_input(Message::Update),
-                button("Reset").on_press(Message::Reset)
+                button("Clear").on_press(Message::Reset)
             ],
         )
         .into()

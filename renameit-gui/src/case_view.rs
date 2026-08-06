@@ -75,7 +75,7 @@ impl CaseView {
                         .on_input(Message::Update)
                         .into()
                 ),
-                button("Reset").on_press(Message::Reset)
+                button("Clear").on_press(Message::Reset)
             ]
             .width(200),
         )
