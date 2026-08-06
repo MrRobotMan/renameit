@@ -269,8 +269,8 @@ impl Files {
             Message::SetOption(opt) => {
                 let mut indices = self.selected.iter().copied().collect::<Vec<_>>();
                 indices.sort();
-                for idx in indices {
-                    self.files[idx].add_option(opt(idx));
+                for (step, idx) in indices.into_iter().enumerate() {
+                    self.files[idx].add_option(opt(step));
                 }
                 self.preview();
             }

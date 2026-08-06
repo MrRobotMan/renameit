@@ -16,6 +16,13 @@ pub struct NumberView {
     mode: Option<Modes>,
     formats: combo_box::State<Formats>,
     format: Option<Formats>,
+    numbering: Numbering,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Numbering {
+    mode: Modes,
+    format: Formats,
     pos: usize,
     start: u32,
     step: u32,
@@ -43,43 +50,28 @@ impl Default for NumberView {
                 Formats::Ascii,
             ]),
             format: Some(Formats::Decimal),
-            pos: Default::default(),
-            start: 1,
-            step: 1,
-            pad: Default::default(),
-            char: Default::default(),
-            sep: Default::default(),
-            upper: Default::default(),
+            numbering: Numbering {
+                start: 1,
+                step: 1,
+                ..Default::default()
+            },
         }
     }
 }
 
-impl OptionBox for NumberOptions {
+impl OptionBox for Numbering {
     fn to_options(&self, index: usize) -> RenameOption {
-        RenameOption::Number(if let NumberMode::Insert(i) = self.mode {
-            Self {
-                mode: NumberMode::Insert(index + i),
-                ..self.clone()
-            }
-        } else {
-            self.clone()
-        })
-    }
-}
-
-impl NumberView {
-    pub fn to_option_box(&self) -> NumberOptions {
-        NumberOptions {
-            mode: match self.mode.unwrap_or_default() {
+        RenameOption::Number(NumberOptions {
+            mode: match self.mode {
                 Modes::Prefix | Modes::None => NumberMode::Prefix,
                 Modes::Suffix => NumberMode::Suffix,
                 Modes::Insert => NumberMode::Insert(self.pos),
             },
-            value: self.start + self.step,
+            value: self.start + self.step * (index as u32),
             pad: self.pad,
             char: self.char.chars().next().unwrap_or('0'),
             sep: self.sep.clone(),
-            format: match self.format.unwrap_or_default() {
+            format: match self.format {
                 Formats::Decimal => NumberFormat::Decimal,
                 Formats::Binary => NumberFormat::Binary,
                 Formats::Octal => NumberFormat::Octal,
@@ -88,6 +80,16 @@ impl NumberView {
                 Formats::Ascii if self.upper => NumberFormat::AsciiUpper,
                 Formats::Ascii => NumberFormat::AsciiLower,
             },
+        })
+    }
+}
+
+impl NumberView {
+    pub fn to_option_box(&self) -> Numbering {
+        Numbering {
+            mode: self.mode.unwrap_or_default(),
+            format: self.format.unwrap_or_default(),
+            ..self.numbering.clone()
         }
     }
     pub fn view(&self) -> Element<'_, Message> {
@@ -111,7 +113,8 @@ impl NumberView {
                         let w: Element<'_, Message> = if matches!(self.mode, Some(Modes::Insert)) {
                             input_field(
                                 "At",
-                                NumberInput::new(&self.pos, 0..=usize::MAX, Message::Pos).into(),
+                                NumberInput::new(&self.numbering.pos, 0..=usize::MAX, Message::Pos)
+                                    .into(),
                             )
                             .into()
                         } else {
@@ -123,22 +126,26 @@ impl NumberView {
                 row![
                     input_field(
                         "Start",
-                        NumberInput::new(&self.start, 0..=(u32::MAX - self.step), Message::Start)
-                            .into()
+                        NumberInput::new(
+                            &self.numbering.start,
+                            0..=(u32::MAX - self.numbering.step),
+                            Message::Start
+                        )
+                        .into()
                     ),
                     input_field(
                         "Step",
-                        NumberInput::new(&self.step, 1..=u32::MAX, Message::Step).into()
+                        NumberInput::new(&self.numbering.step, 1..=u32::MAX, Message::Step).into()
                     ),
                 ],
                 row![
                     input_field(
                         "Pad",
-                        NumberInput::new(&self.pad, 0..=usize::MAX, Message::Pad).into()
+                        NumberInput::new(&self.numbering.pad, 0..=usize::MAX, Message::Pad).into()
                     ),
                     input_field(
                         "Char.",
-                        text_input(&self.sep, &self.sep)
+                        text_input(&self.numbering.sep, &self.numbering.sep)
                             .on_input(Message::Char)
                             .into()
                     ),
@@ -160,7 +167,9 @@ impl NumberView {
                         let w: Element<'_, Message> = match self.format {
                             Some(Formats::Hex) | Some(Formats::Ascii) => input_field(
                                 "Upper",
-                                checkbox(self.upper).on_toggle(Message::Upper).into(),
+                                checkbox(self.numbering.upper)
+                                    .on_toggle(Message::Upper)
+                                    .into(),
                             )
                             .into(),
                             _ => space::horizontal().into(),
@@ -170,7 +179,7 @@ impl NumberView {
                 ],
                 input_field(
                     "Sep",
-                    text_input(&self.sep, &self.sep)
+                    text_input(&self.numbering.sep, &self.numbering.sep)
                         .on_input(Message::Sep)
                         .into()
                 ),
@@ -192,7 +201,7 @@ impl NumberView {
                 return Action::Remove;
             }
             Message::Char(s) => {
-                self.char = match s.chars().count() {
+                self.numbering.char = match s.chars().count() {
                     0 => String::new(),
                     1 => s,
                     _ => s.chars().last().map(|c| c.to_string()).unwrap_or_default(),
@@ -200,12 +209,12 @@ impl NumberView {
             }
             Message::Format(f) => self.format = Some(f),
             Message::Mode(m) => self.mode = Some(m),
-            Message::Pad(n) => self.pad = n,
-            Message::Pos(n) => self.pos = n,
-            Message::Sep(s) => self.sep = s,
-            Message::Start(n) => self.start = n,
-            Message::Step(n) => self.step = n,
-            Message::Upper(b) => self.upper = b,
+            Message::Pad(n) => self.numbering.pad = n,
+            Message::Pos(n) => self.numbering.pos = n,
+            Message::Sep(s) => self.numbering.sep = s,
+            Message::Start(n) => self.numbering.start = n,
+            Message::Step(n) => self.numbering.step = n,
+            Message::Upper(b) => self.numbering.upper = b,
         }
         Action::Update
     }
