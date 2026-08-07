@@ -29,14 +29,14 @@ impl Default for NameView {
 }
 
 impl OptionBox for NameView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let opt = match self.version {
             Some(Choice::Keep) | None => NameOptions::Keep,
             Some(Choice::Remove) => NameOptions::Remove,
             Some(Choice::Reverse) => NameOptions::Reverse,
             Some(Choice::Fixed) => NameOptions::Fixed(self.text.clone()),
         };
-        Box::new(move |_| RenameOption::Name(opt.clone()))
+        move |_| RenameOption::Name(opt.clone())
     }
 }
 

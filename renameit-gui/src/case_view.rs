@@ -33,18 +33,18 @@ impl Default for CaseView {
 }
 
 impl OptionBox for CaseView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let case = self.selected.unwrap_or(Case::Keep);
         let snake = self.snake;
         let exceptions = self.exceptions.clone();
 
-        Box::new(move |_| {
+        move |_| {
             RenameOption::Case(CaseOptions {
                 case,
                 snake,
                 exceptions: exceptions.clone(),
             })
-        })
+        }
     }
 }
 

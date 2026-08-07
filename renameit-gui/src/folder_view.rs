@@ -31,17 +31,17 @@ impl Default for FolderView {
 }
 
 impl OptionBox for FolderView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let mode = self.selected.unwrap_or_default();
         let sep = self.sep.clone();
         let levels = self.levels;
-        Box::new(move |_| {
+        move |_| {
             RenameOption::Folder(FolderOptions {
                 mode,
                 sep: sep.clone(),
                 levels,
             })
-        })
+        }
     }
 }
 

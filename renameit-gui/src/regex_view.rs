@@ -14,13 +14,13 @@ pub struct RegexView {
 }
 
 impl OptionBox for RegexView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let opt = RegexOptions {
             exp: self.expression.clone(),
             rep: self.replacement.clone(),
             extension: self.include_extension,
         };
-        Box::new(move |_| RenameOption::Regex(opt.clone()))
+        move |_| RenameOption::Regex(opt.clone())
     }
 }
 

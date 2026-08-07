@@ -50,14 +50,14 @@ impl Default for DateView {
 }
 
 impl OptionBox for DateView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let date_mode = self.date_mode.clone().unwrap_or_default();
         let date_type = self.date_type.clone().unwrap_or_default();
         let fmt = self.date_format.clone().unwrap_or_default();
         let sep = self.sep.clone();
         let seg = self.seg.clone();
         let full_year = self.full_year;
-        Box::new(move |_| {
+        move |_| {
             RenameOption::Date(DateOptions {
                 date_mode: date_mode.clone(),
                 date_type: date_type.clone(),
@@ -66,7 +66,7 @@ impl OptionBox for DateView {
                 seg: seg.clone(),
                 full_year,
             })
-        })
+        }
     }
 }
 

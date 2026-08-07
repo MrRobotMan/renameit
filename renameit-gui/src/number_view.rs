@@ -55,7 +55,7 @@ impl Default for NumberView {
 }
 
 impl OptionBox for NumberView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let mode = match self.mode.unwrap_or_default() {
             Modes::Prefix | Modes::None => NumberMode::Prefix,
             Modes::Suffix => NumberMode::Suffix,
@@ -75,7 +75,7 @@ impl OptionBox for NumberView {
             Formats::Ascii if self.upper => NumberFormat::AsciiUpper,
             Formats::Ascii => NumberFormat::AsciiLower,
         };
-        Box::new(move |index| {
+        move |index| {
             RenameOption::Number(NumberOptions {
                 mode,
                 value: start + step * (index as u32),
@@ -84,7 +84,7 @@ impl OptionBox for NumberView {
                 sep: sep.clone(),
                 format,
             })
-        })
+        }
     }
 }
 

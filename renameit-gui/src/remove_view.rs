@@ -49,7 +49,7 @@ impl Default for RemoveView {
 }
 
 impl OptionBox for RemoveView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let opt = RemoveOptions {
             first_n: self.first,
             last_n: self.last,
@@ -65,7 +65,7 @@ impl OptionBox for RemoveView {
             symbols: self.symbols,
             lead_dots: self.lead_dots,
         };
-        Box::new(move |_| RenameOption::Remove(opt.clone()))
+        move |_| RenameOption::Remove(opt.clone())
     }
 }
 

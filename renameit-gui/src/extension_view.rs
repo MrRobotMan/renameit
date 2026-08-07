@@ -33,7 +33,7 @@ impl Default for ExtensionView {
 }
 
 impl OptionBox for ExtensionView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let opt = match self.selected {
             Some(Opt::Keep) | None => ExtensionOptions::Keep,
             Some(Opt::Lower) => ExtensionOptions::Lower,
@@ -43,7 +43,7 @@ impl OptionBox for ExtensionView {
             Some(Opt::Extra) => ExtensionOptions::Extra(self.text.clone()),
             Some(Opt::Remove) => ExtensionOptions::Remove,
         };
-        Box::new(move |_| RenameOption::Extension(opt.clone()))
+        move |_| RenameOption::Extension(opt.clone())
     }
 }
 

@@ -31,19 +31,19 @@ pub enum Message {
 }
 
 impl OptionBox for AddView {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<> {
         let prefix = (!self.prefix.is_empty()).then(|| self.prefix.clone());
         let insert = (!self.insert.is_empty()).then(|| (self.position, self.insert.clone()));
         let suffix = (!self.suffix.is_empty()).then(|| self.suffix.clone());
         let word_space = self.word_space;
-        Box::new(move |_| {
+        move |_| {
             RenameOption::Add(AddOptions {
                 prefix: prefix.clone(),
                 insert: insert.clone(),
                 suffix: suffix.clone(),
                 word_space,
             })
-        })
+        }
     }
 }
 

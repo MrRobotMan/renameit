@@ -166,8 +166,8 @@ impl App {
     }
 }
 
-trait OptionBox {
-    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync>;
+trait OptionBox: 'static {
+    fn to_options(&self) -> impl Fn(usize) -> RenameOption + Send + Sync + use<Self>;
 }
 
 fn input_field<'a, M: 'a, S: Into<String> + 'a>(label: S, widget: Element<'a, M>) -> Row<'a, M> {
