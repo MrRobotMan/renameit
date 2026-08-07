@@ -6,7 +6,7 @@ use iced::{
 use iced_aw::widget::LabeledFrame;
 use renameit_lib::{NameOptions, RenameOption};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NameView {
     choices: combo_box::State<Choice>,
     version: Option<Choice>,
@@ -28,38 +28,19 @@ impl Default for NameView {
     }
 }
 
-#[derive(Default, Debug, Copy, Clone)]
-pub enum Choice {
-    #[default]
-    Keep,
-    Remove,
-    Reverse,
-    Fixed,
-}
-
-#[derive(Clone)]
-pub enum Message {
-    ChangeVersion(Choice),
-    Update(String),
-    Reset,
-}
-
-impl OptionBox for NameOptions {
-    fn to_options(&self, _index: usize) -> RenameOption {
-        RenameOption::Name(self.clone())
-    }
-}
-
-impl NameView {
-    pub fn to_option_box(&self) -> NameOptions {
-        match self.version {
+impl OptionBox for NameView {
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+        let opt = match self.version {
             Some(Choice::Keep) | None => NameOptions::Keep,
             Some(Choice::Remove) => NameOptions::Remove,
             Some(Choice::Reverse) => NameOptions::Reverse,
             Some(Choice::Fixed) => NameOptions::Fixed(self.text.clone()),
-        }
+        };
+        Box::new(move |_| RenameOption::Name(opt.clone()))
     }
+}
 
+impl NameView {
     pub fn view(&self) -> Element<'_, Message> {
         LabeledFrame::new(
             "Name",
@@ -96,6 +77,22 @@ impl NameView {
         }
         Action::Update
     }
+}
+
+#[derive(Default, Debug, Copy, Clone)]
+pub enum Choice {
+    #[default]
+    Keep,
+    Remove,
+    Reverse,
+    Fixed,
+}
+
+#[derive(Clone)]
+pub enum Message {
+    ChangeVersion(Choice),
+    Update(String),
+    Reset,
 }
 
 impl std::fmt::Display for Choice {

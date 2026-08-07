@@ -32,20 +32,23 @@ impl Default for CaseView {
     }
 }
 
-impl OptionBox for CaseOptions {
-    fn to_options(&self, _index: usize) -> RenameOption {
-        RenameOption::Case(self.clone())
+impl OptionBox for CaseView {
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+        let case = self.selected.unwrap_or(Case::Keep);
+        let snake = self.snake;
+        let exceptions = self.exceptions.clone();
+
+        Box::new(move |_| {
+            RenameOption::Case(CaseOptions {
+                case,
+                snake,
+                exceptions: exceptions.clone(),
+            })
+        })
     }
 }
 
 impl CaseView {
-    pub fn to_option_box(&self) -> CaseOptions {
-        CaseOptions {
-            case: self.selected.unwrap_or(Case::Keep),
-            snake: self.snake,
-            exceptions: self.exceptions.clone(),
-        }
-    }
     pub fn view(&self) -> Element<'_, Message> {
         LabeledFrame::new(
             "Case",

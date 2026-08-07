@@ -30,20 +30,22 @@ impl Default for FolderView {
     }
 }
 
-impl OptionBox for FolderOptions {
-    fn to_options(&self, _index: usize) -> RenameOption {
-        RenameOption::Folder(self.clone())
+impl OptionBox for FolderView {
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+        let mode = self.selected.unwrap_or_default();
+        let sep = self.sep.clone();
+        let levels = self.levels;
+        Box::new(move |_| {
+            RenameOption::Folder(FolderOptions {
+                mode,
+                sep: sep.clone(),
+                levels,
+            })
+        })
     }
 }
 
 impl FolderView {
-    pub fn to_option_box(&self) -> FolderOptions {
-        FolderOptions {
-            mode: self.selected.unwrap_or_default(),
-            sep: self.sep.clone(),
-            levels: self.levels,
-        }
-    }
     pub fn view(&self) -> Element<'_, Message> {
         LabeledFrame::new(
             "Parent Folder Name",

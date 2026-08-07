@@ -32,9 +32,9 @@ impl Default for ExtensionView {
     }
 }
 
-impl ExtensionView {
-    pub fn to_option_box(&self) -> ExtensionOptions {
-        match self.selected {
+impl OptionBox for ExtensionView {
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+        let opt = match self.selected {
             Some(Opt::Keep) | None => ExtensionOptions::Keep,
             Some(Opt::Lower) => ExtensionOptions::Lower,
             Some(Opt::Upper) => ExtensionOptions::Upper,
@@ -42,9 +42,12 @@ impl ExtensionView {
             Some(Opt::New) => ExtensionOptions::New(self.text.clone()),
             Some(Opt::Extra) => ExtensionOptions::Extra(self.text.clone()),
             Some(Opt::Remove) => ExtensionOptions::Remove,
-        }
+        };
+        Box::new(move |_| RenameOption::Extension(opt.clone()))
     }
+}
 
+impl ExtensionView {
     pub fn view(&self) -> Element<'_, Message> {
         LabeledFrame::new(
             "Extension",
@@ -115,12 +118,6 @@ impl std::fmt::Display for Opt {
             Opt::Extra => "Extra",
             Opt::Remove => "Remove",
         })
-    }
-}
-
-impl OptionBox for ExtensionOptions {
-    fn to_options(&self, _index: usize) -> RenameOption {
-        RenameOption::Extension(self.clone())
     }
 }
 

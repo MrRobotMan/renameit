@@ -15,12 +15,13 @@ pub struct ReplaceView {
 }
 
 impl OptionBox for ReplaceView {
-    fn to_options(&self, _index: usize) -> RenameOption {
-        RenameOption::Replace(ReplaceOptions {
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+        let opt = ReplaceOptions {
             replace: self.replace.clone(),
             with: self.with.clone(),
             case_sensative: self.case_sensative,
-        })
+        };
+        Box::new(move |_| RenameOption::Replace(opt.clone()))
     }
 }
 

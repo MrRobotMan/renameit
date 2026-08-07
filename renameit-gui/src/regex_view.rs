@@ -13,26 +13,14 @@ pub struct RegexView {
     include_extension: bool,
 }
 
-#[derive(Copy, Clone)]
-pub enum Field {
-    Expression,
-    Replacement,
-}
-
-#[derive(Clone)]
-pub enum Message {
-    ChangedText((Field, String)),
-    BoxToggle(bool),
-    Reset,
-}
-
 impl OptionBox for RegexView {
-    fn to_options(&self, _index: usize) -> RenameOption {
-        RenameOption::Regex(RegexOptions {
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync> {
+        let opt = RegexOptions {
             exp: self.expression.clone(),
             rep: self.replacement.clone(),
             extension: self.include_extension,
-        })
+        };
+        Box::new(move |_| RenameOption::Regex(opt.clone()))
     }
 }
 
@@ -79,4 +67,17 @@ impl RegexView {
         }
         Action::Update
     }
+}
+
+#[derive(Copy, Clone)]
+pub enum Field {
+    Expression,
+    Replacement,
+}
+
+#[derive(Clone)]
+pub enum Message {
+    ChangedText((Field, String)),
+    BoxToggle(bool),
+    Reset,
 }

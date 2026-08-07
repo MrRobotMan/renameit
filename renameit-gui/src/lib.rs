@@ -55,17 +55,7 @@ macro_rules! match_option {
                 return $self.apply_option($self.$field.clone());
             }
             Action::Remove => {
-                return $self.remove_option($self.$field.to_options(0));
-            }
-        }
-    }};
-    ($self:ident, $field:ident, $variant:ident, $msg:ident, $func:ident) => {{
-        match $self.$field.update($msg) {
-            Action::Update => {
-                return $self.apply_option($self.$field.$func());
-            }
-            Action::Remove => {
-                return $self.remove_option($self.$field.$func().to_options(0));
+                return $self.remove_option($self.$field.to_options()(0));
             }
         }
     }};
@@ -108,23 +98,23 @@ impl App {
             }
             Message::None => {}
             Message::Add(message) => match_option!(self, add, Add, message),
-            Message::Case(message) => match_option!(self, case, Case, message, to_option_box),
-            Message::Date(message) => match_option!(self, date, Date, message, to_option_box),
-            Message::Name(message) => match_option!(self, name, Name, message, to_option_box),
+            Message::Case(message) => match_option!(self, case, Case, message),
+            Message::Date(message) => match_option!(self, date, Date, message),
+            Message::Name(message) => match_option!(self, name, Name, message),
             Message::Regex(message) => match_option!(self, regex, Regex, message),
             Message::Replace(message) => match_option!(self, replace, Replace, message),
             Message::Extension(message) => {
-                match_option!(self, extension, Extension, message, to_option_box)
+                match_option!(self, extension, Extension, message)
             }
-            Message::Folder(message) => match_option!(self, folder, Folder, message, to_option_box),
-            Message::Number(message) => match_option!(self, number, Number, message, to_option_box),
+            Message::Folder(message) => match_option!(self, folder, Folder, message),
+            Message::Number(message) => match_option!(self, number, Number, message),
             Message::Remove(message) => match_option!(self, remove, Remove, message),
         }
         Task::none()
     }
 
-    fn apply_option(&mut self, option: impl OptionBox + Send + Sync + 'static) -> Task<Message> {
-        let opt = Arc::new(move |idx| option.to_options(idx));
+    fn apply_option(&mut self, option: impl OptionBox) -> Task<Message> {
+        let opt = Arc::new(option.to_options());
         if let files::Action::Run(task) = self.files.update(files::Message::SetOption(opt)) {
             task.map(Message::Files)
         } else {
@@ -147,16 +137,6 @@ impl App {
     fn view(&self) -> Element<'_, Message> {
         column![
             self.files.view().map(Message::Files),
-            //    -  1 RegEx
-            //    -  2 Name
-            //    -  3 Replace
-            //    -  4 Case
-            //    -  5 Remove
-            //    -  6 Add
-            //    -  7 Auto Date
-            //    -  8 Append Folder Name
-            //    -  9 Numbering
-            //    - 10 Extension
             row![
                 column![
                     self.regex.view().map(Message::Regex),
@@ -187,7 +167,7 @@ impl App {
 }
 
 trait OptionBox {
-    fn to_options(&self, index: usize) -> RenameOption;
+    fn to_options(&self) -> Box<dyn Fn(usize) -> RenameOption + Send + Sync>;
 }
 
 fn input_field<'a, M: 'a, S: Into<String> + 'a>(label: S, widget: Element<'a, M>) -> Row<'a, M> {
