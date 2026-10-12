@@ -13,5 +13,6 @@ rfd = "0.17"
 home = "0.5"
 renameit-lib = {path="../renameit-lib"}
 iced_table2 = "0.14.2"
-thiserror = "2.0"
+thiserror = {workspace=true}
+eros={workspace=true}
 iced_aw = { version = "0.14.1", features = ["number_input"] }

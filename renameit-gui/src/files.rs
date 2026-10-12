@@ -1,12 +1,13 @@
 use std::{
     collections::HashSet,
     fs::read_dir,
-    mem,
+    io, mem,
     path::{Path, PathBuf},
     sync::Arc,
 };
 
 use chrono::{DateTime, Local};
+use eros::ErrorUnion;
 use iced::{
     Color, Element, Length, Renderer, Task, Theme,
     keyboard::Modifiers,
@@ -14,7 +15,7 @@ use iced::{
 };
 use iced_table2::table::{Column, table};
 use renameit_lib::{
-    FileError, RenameOption, Renamer,
+    BadFileStemError, RenameOption, Renamer,
     helpers::{get_directory, get_start_dir},
 };
 
@@ -331,7 +332,7 @@ impl Files {
         self.preview();
     }
 
-    pub fn process(&mut self) -> Vec<(PathBuf, FileError)> {
+    pub fn process(&mut self) -> Vec<(PathBuf, ErrorUnion<(BadFileStemError, io::Error)>)> {
         let mut errors = Vec::new();
         for idx in &self.selected {
             let ren = mem::take(&mut self.files[*idx]);
@@ -417,7 +418,7 @@ impl<'a> Column<'a, Message, Theme, Renderer> for DisplayColumn {
 }
 
 pub enum Action {
-    Errors(Vec<(PathBuf, FileError)>),
+    Errors(Vec<(PathBuf, ErrorUnion<(BadFileStemError, io::Error)>)>),
     None,
     Run(Task<Message>),
     Reapply,

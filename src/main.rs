@@ -3,40 +3,38 @@ use std::{
     io::{self, IsTerminal},
     path::PathBuf,
 };
-use thiserror::Error;
 
-use renameit_gui::{GuiError, run};
+use eros::{ReshapeUnion, Result};
+
+use renameit_gui::run;
 use renameit_lib::{
-    DirectoryError, RenamerError,
+    IsAFileError, NoHomeDirError, PathDoesNotExistError,
     helpers::{get_directory, get_start_dir},
 };
 
-fn main() -> Result<(), AnyError> {
+fn main() -> Result<()> {
     let path = if io::stdout().is_terminal() {
-        match get_initial_directory() {
-            Err(e) => return Err(AnyError::Lib(e.into())),
-            Ok(p) => Some(p),
-        }
+        Some(get_initial_directory()?)
     } else {
         None
     };
-    Ok(run(path)?)
+    run(path)
 }
 
 // Get the full path of a directory falling back to the home directory
 // if nothing is provided. If the provided path is a file, the file's parent
 // is returned.
-fn get_initial_directory() -> Result<PathBuf, DirectoryError> {
+fn get_initial_directory() -> Result<
+    PathBuf,
+    (
+        NoHomeDirError,
+        PathDoesNotExistError,
+        IsAFileError,
+        std::io::Error,
+    ),
+> {
     env::args().nth(1).map_or_else(
-        || env::current_dir().or_else(|_| get_start_dir()),
-        get_directory,
+        || env::current_dir().or_else(|_| get_start_dir().widen()),
+        |arg| get_directory(arg).widen(),
     )
-}
-
-#[derive(Debug, Error)]
-enum AnyError {
-    #[error(transparent)]
-    Gui(#[from] GuiError),
-    #[error(transparent)]
-    Lib(#[from] RenamerError),
 }

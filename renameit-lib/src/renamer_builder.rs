@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use eros::Result;
+
 use crate::date;
 use crate::*;
 
@@ -15,7 +17,7 @@ impl RenamerBuilder {
         }
     }
 
-    pub fn new(path: &Path) -> Result<Self, FileError> {
+    pub fn new(path: &Path) -> Result<Self, (BadFileStemError,)> {
         Ok(Self {
             renamer: Renamer::new(path)?,
         })

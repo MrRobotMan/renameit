@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use eros::{ErrorUnion, Result};
 use iced::{
     self, Element, Subscription, Task, keyboard,
     widget::{Row, button, column, row, text},
@@ -20,9 +21,9 @@ mod number_view;
 mod regex_view;
 mod remove_view;
 mod replace_view;
-use renameit_lib::{DirectoryError, FileError, RenameOption};
+use renameit_lib::{BadFileStemError, RenameOption};
 
-pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
+pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<()> {
     let app = Cell::new(App::new(initial_dir));
     iced::application(move || app.take(), App::update, App::view)
         .title("Renameit!")
@@ -34,7 +35,7 @@ pub fn run<P: AsRef<Path>>(initial_dir: Option<P>) -> Result<(), GuiError> {
 
 #[derive(Default)]
 struct App {
-    errors: Vec<(PathBuf, FileError)>,
+    errors: Vec<(PathBuf, ErrorUnion<(BadFileStemError, std::io::Error)>)>,
     files: files::Files,
     add: add_view::AddView,
     case: case_view::CaseView,
@@ -148,6 +149,8 @@ impl App {
                 ],
                 self.remove.view().map(Message::Remove),
                 self.add.view().map(Message::Add),
+            ],
+            row![
                 self.date.view().map(Message::Date),
                 self.folder.view().map(Message::Folder),
                 self.number.view().map(Message::Number),
@@ -195,12 +198,4 @@ enum Message {
 enum Action {
     Remove,
     Update,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum GuiError {
-    #[error(transparent)]
-    Iced(#[from] iced::Error),
-    #[error(transparent)]
-    Directory(#[from] DirectoryError),
 }

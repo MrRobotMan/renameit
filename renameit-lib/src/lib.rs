@@ -1,10 +1,11 @@
 use std::{
     cmp::Ordering,
     fmt::Debug,
-    fs,
+    fs, io,
     path::{Path, PathBuf},
 };
 
+use eros::{ErrorUnion, IntoUnion, Result};
 pub mod add;
 pub mod case;
 pub mod date;
@@ -92,7 +93,7 @@ impl Renamer {
     /// Create a new File object from a Path.
     /// No checking is performed to validate that the Path exists or is a file.
     /// To perform this check use [Renamer::try_from<&Path>], [Renamer::try_from<&PathBuf>], or `[Renamer::try_from<PathBuf>]`
-    pub fn new(path: &Path) -> Result<Self, FileError> {
+    pub fn new(path: &Path) -> Result<Self, (BadFileStemError,)> {
         let extension = {
             generate_path_as_string(path.extension()).map(|e| match e {
                 PathString::Valid(s) => s,
@@ -116,7 +117,7 @@ impl Renamer {
                     ..Default::default()
                 })
             }
-            None => Err(FileError::BadStem),
+            None => Err(BadFileStemError).union(),
         }
     }
 
@@ -177,12 +178,14 @@ impl Renamer {
     }
 
     /// Rename the file. Can not be undone.
-    pub fn rename(mut self) -> Result<Self, (PathBuf, FileError)> {
+    pub fn rename(
+        mut self,
+    ) -> std::result::Result<Self, (PathBuf, ErrorUnion<(BadFileStemError, io::Error)>)> {
         let new_name = self.preview();
         if let Err(e) = fs::rename(&self.original, &new_name) {
-            return Err((self.original, e.into()));
+            return Err((self.original, ErrorUnion::new(e)));
         };
-        Self::new(&new_name).map_err(|e| (new_name, e))
+        Self::new(&new_name).map_err(|e| (new_name, e.widen()))
     }
 
     /// Revert the previewed changes to a file.
@@ -282,11 +285,13 @@ impl Renamer {
 }
 
 impl TryFrom<&Path> for Renamer {
-    type Error = FileError;
+    type Error = ErrorUnion<(BadFileStemError, FileNotFoundError)>;
 
-    fn try_from(path: &Path) -> Result<Self, FileError> {
+    fn try_from(
+        path: &Path,
+    ) -> std::result::Result<Self, ErrorUnion<(BadFileStemError, FileNotFoundError)>> {
         if !path.exists() {
-            return Err(FileError::NotFound);
+            return Err(ErrorUnion::new(FileNotFoundError));
         }
         let extension = {
             generate_path_as_string(path.extension()).map(|e| match e {
@@ -311,23 +316,27 @@ impl TryFrom<&Path> for Renamer {
                     ..Default::default()
                 })
             }
-            None => Err(FileError::BadStem),
+            None => Err(ErrorUnion::new(BadFileStemError)),
         }
     }
 }
 
 impl TryFrom<PathBuf> for Renamer {
-    type Error = FileError;
+    type Error = ErrorUnion<(BadFileStemError, FileNotFoundError)>;
 
-    fn try_from(value: PathBuf) -> Result<Self, FileError> {
+    fn try_from(
+        value: PathBuf,
+    ) -> std::result::Result<Self, ErrorUnion<(BadFileStemError, FileNotFoundError)>> {
         value.as_path().try_into()
     }
 }
 
 impl TryFrom<&PathBuf> for Renamer {
-    type Error = FileError;
+    type Error = ErrorUnion<(BadFileStemError, FileNotFoundError)>;
 
-    fn try_from(value: &PathBuf) -> Result<Self, FileError> {
+    fn try_from(
+        value: &PathBuf,
+    ) -> std::result::Result<Self, ErrorUnion<(BadFileStemError, FileNotFoundError)>> {
         value.as_path().try_into()
     }
 }
@@ -444,8 +453,8 @@ mod file_tests {
         assert_eq!(Path::new("file-with-a-name.txt"), renamer.preview());
         assert!(matches!(
             renamer.rename(),
-            Err((p, FileError::Io(e))) if p == *"file_with_a_name.txt" && e.kind() == io::ErrorKind::NotFound
-        ));
+            Err((p, e)) if p == *"file_with_a_name.txt" && e.downcast_inner_ref::<std::io::Error>().is_some_and(|e|  e.kind() == io::ErrorKind::NotFound
+        )));
         let _ = fs::remove_file(file2);
         let _ = fs::remove_file("file-with-a-name.txt");
     }
